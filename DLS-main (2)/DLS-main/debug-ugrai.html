@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ugrai Analysis Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button { 
+            background: #22c55e; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { 
+            background: #16a34a; 
+        }
+        .result { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            border-radius: 4px; 
+            padding: 15px; 
+            margin: 10px 0; 
+            font-family: monospace; 
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error { 
+            background: #fee; 
+            border-color: #fcc; 
+            color: #c66;
+        }
+        .success { 
+            background: #efe; 
+            border-color: #cfc; 
+            color: #6c6;
+        }
+        .info { 
+            background: #e6f3ff; 
+            border-color: #b3d9ff; 
+            color: #0066cc;
+        }
+        h1 { color: #22c55e; }
+        h2 { color: #374151; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Ugrai Analysis Debug Tool</h1>
+        <p>This tool helps diagnose issues with the Ugrai Analysis dashboard.</p>
+        
+        <h2>Step 1: Initialize Connection</h2>
+        <button onclick="initializeSupabase()">📡 Initialize Supabase</button>
+        <div id="init-result"></div>
+        
+        <h2>Step 2: Test Data Sources</h2>
+        <button onclick="testCompletedUgrai()">📊 Test completed_ugrai Table</button>
+        <button onclick="testUgraiCompleted()">📊 Test ugrai_completed Table</button>
+        <button onclick="testAllUgrai()">📊 Test All Ugrai Data</button>
+        <div id="data-result"></div>
+        
+        <h2>Step 3: Test Analysis Functions</h2>
+        <button onclick="testAnalysisCalculation()">🧮 Test Analysis Calculation</button>
+        <div id="analysis-result"></div>
+        
+        <h2>Step 4: Check Database Tables</h2>
+        <button onclick="checkTableStructure()">🏗️ Check Table Structure</button>
+        <div id="structure-result"></div>
+    </div>
+
+    <script src="supabase-config-example.js"></script>
+    <script>
+        let supabaseClient = null;
+        let supabaseService = null;
+
+        // Initialize Supabase connection
+        async function initializeSupabase() {
+            const resultDiv = document.getElementById('init-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                // Use the same config as the main app
+                if (typeof SUPABASE_CONFIG === 'undefined') {
+                    throw new Error('SUPABASE_CONFIG not found. Make sure supabase-config-example.js is loaded.');
+                }
+                
+                supabaseClient = supabase.createClient(
+                    SUPABASE_CONFIG.url, 
+                    SUPABASE_CONFIG.key,
+                    {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true,
+                            detectSessionInUrl: true,
+                            storage: window.localStorage,
+                            flowType: 'pkce'
+                        }
+                    }
+                );
+                
+                // Import the SupabaseService class
+                const script = document.createElement('script');
+                script.src = 'supabase-service.js';
+                document.head.appendChild(script);
+                
+                await new Promise(resolve => {
+                    script.onload = resolve;
+                });
+                
+                // Initialize the service
+                supabaseService = new SupabaseService();
+                await supabaseService.initialize();
+                
+                resultDiv.innerHTML = '<div class="result success">✅ Supabase initialized successfully!</div>';
+                
+                // Test basic connection
+                const { data, error } = await supabaseClient.from('completed_ugrai').select('count', { count: 'exact', head: true });
+                if (error) throw error;
+                
+                resultDiv.innerHTML += `<div class="result info">📊 Connection test: ${data || 'Connected'}</div>`;
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Test completed_ugrai table
+        async function testCompletedUgrai() {
+            const resultDiv = document.getElementById('data-result');
+            
+            if (!supabaseService) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please initialize Supabase first</div>';
+                return;
+            }
+            
+            try {
+                const data = await supabaseService.getCompletedUgrai();
+                const summary = {
+                    count: data ? data.length : 0,
+                    firstItem: data && data.length > 0 ? data[0] : null,
+                    fields: data && data.length > 0 ? Object.keys(data[0]) : []
+                };
+                
+                resultDiv.innerHTML = `<div class="result info">📊 completed_ugrai Table Results:
+Count: ${summary.count}
+Fields: ${summary.fields.join(', ')}
+First Item: ${JSON.stringify(summary.firstItem, null, 2)}</div>`;
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Error testing completed_ugrai: ${error.message}</div>`;
+            }
+        }
+
+        // Test ugrai_completed table
+        async function testUgraiCompleted() {
+            const resultDiv = document.getElementById('data-result');
+            
+            if (!supabaseService) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please initialize Supabase first</div>';
+                return;
+            }
+            
+            try {
+                const data = await supabaseService.getCompletedUgraiNew();
+                const summary = {
+                    count: data ? data.length : 0,
+                    firstItem: data && data.length > 0 ? data[0] : null,
+                    fields: data && data.length > 0 ? Object.keys(data[0]) : []
+                };
+                
+                resultDiv.innerHTML += `<div class="result info">📊 ugrai_completed Table Results:
+Count: ${summary.count}
+Fields: ${summary.fields.join(', ')}
+First Item: ${JSON.stringify(summary.firstItem, null, 2)}</div>`;
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML += `<div class="result error">❌ Error testing ugrai_completed: ${error.message}</div>`;
+            }
+        }
+
+        // Test all ugrai data
+        async function testAllUgrai() {
+            const resultDiv = document.getElementById('data-result');
+            
+            if (!supabaseService) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please initialize Supabase first</div>';
+                return;
+            }
+            
+            try {
+                const data = await supabaseService.getAllUgrai();
+                const summary = {
+                    count: data ? data.length : 0,
+                    firstItem: data && data.length > 0 ? data[0] : null,
+                    fields: data && data.length > 0 ? Object.keys(data[0]) : []
+                };
+                
+                resultDiv.innerHTML += `<div class="result info">📊 All Ugrai Data Results:
+Count: ${summary.count}
+Fields: ${summary.fields.join(', ')}
+First Item: ${JSON.stringify(summary.firstItem, null, 2)}</div>`;
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML += `<div class="result error">❌ Error testing all ugrai: ${error.message}</div>`;
+            }
+        }
+
+        // Test analysis calculation
+        async function testAnalysisCalculation() {
+            const resultDiv = document.getElementById('analysis-result');
+            
+            if (!supabaseService) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please initialize Supabase first</div>';
+                return;
+            }
+            
+            try {
+                // Get data from both sources
+                const completedUgrai = await supabaseService.getCompletedUgrai() || [];
+                const completedUgraiNew = await supabaseService.getCompletedUgraiNew() || [];
+                
+                // Use whichever has more data
+                const testData = completedUgraiNew.length > completedUgrai.length ? completedUgraiNew : completedUgrai;
+                
+                if (testData.length === 0) {
+                    resultDiv.innerHTML = '<div class="result error">❌ No data available for analysis</div>';
+                    return;
+                }
+                
+                // Calculate basic metrics
+                const totalCount = testData.length;
+                const totalAmount = testData.reduce((sum, item) => {
+                    const amount = parseFloat(item.netAmount || item.net_amount || item.amount || item.receivedAmount || 0);
+                    return sum + amount;
+                }, 0);
+                
+                const paymentMethods = {};
+                testData.forEach(item => {
+                    const method = item.paymentMethod || item.payment_method || 'Other';
+                    paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+                });
+                
+                resultDiv.innerHTML = `<div class="result success">✅ Analysis Calculation Test:
+Total Count: ${totalCount}
+Total Amount: ₹${totalAmount.toLocaleString()}
+Payment Methods: ${JSON.stringify(paymentMethods, null, 2)}
+Data Source: ${completedUgraiNew.length > completedUgrai.length ? 'ugrai_completed' : 'completed_ugrai'}
+Sample Item: ${JSON.stringify(testData[0], null, 2)}</div>`;
+                
+            } catch (error) {
+                console.error('Analysis test error:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Error in analysis calculation: ${error.message}</div>`;
+            }
+        }
+
+        // Check table structure
+        async function checkTableStructure() {
+            const resultDiv = document.getElementById('structure-result');
+            
+            if (!supabaseClient) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please initialize Supabase first</div>';
+                return;
+            }
+            
+            try {
+                // Check completed_ugrai table
+                const { data: completedUgraiData, error: error1 } = await supabaseClient
+                    .from('completed_ugrai')
+                    .select('*')
+                    .limit(1);
+                
+                // Check ugrai_completed table
+                const { data: ugraiCompletedData, error: error2 } = await supabaseClient
+                    .from('ugrai_completed')
+                    .select('*')
+                    .limit(1);
+                
+                let result = '📊 Table Structure Check:\n\n';
+                
+                if (error1) {
+                    result += `❌ completed_ugrai table error: ${error1.message}\n\n`;
+                } else {
+                    result += `✅ completed_ugrai table accessible\n`;
+                    result += `Columns: ${completedUgraiData && completedUgraiData[0] ? Object.keys(completedUgraiData[0]).join(', ') : 'No data'}\n\n`;
+                }
+                
+                if (error2) {
+                    result += `❌ ugrai_completed table error: ${error2.message}\n\n`;
+                } else {
+                    result += `✅ ugrai_completed table accessible\n`;
+                    result += `Columns: ${ugraiCompletedData && ugraiCompletedData[0] ? Object.keys(ugraiCompletedData[0]).join(', ') : 'No data'}\n\n`;
+                }
+                
+                resultDiv.innerHTML = `<div class="result info">${result}</div>`;
+                
+            } catch (error) {
+                console.error('Structure check error:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Error checking table structure: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

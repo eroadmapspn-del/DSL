@@ -1,0 +1,2524 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - BeautyBasket by DLS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fallback Tailwind CSS CDN in case primary fails -->
+    <script>
+        // Check if Tailwind loaded, if not load fallback
+        if (typeof tailwind === 'undefined') {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+            document.head.appendChild(link);
+            console.log('Loaded Tailwind CSS fallback');
+        }
+    </script>
+    <script src="config.js"></script>
+    <script src="sheets-client.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <!-- Hamburger Menu Button -->
+                    <button id="hamburger-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <h1 class="text-2xl font-bold text-red-600">BeautyBasket Admin</h1>
+                    <span class="text-gray-500 text-sm">by DLS</span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-600">
+                        <span>Welcome, </span>
+                        <span id="admin-name" class="font-semibold text-gray-900"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Menu (Slide-out from left) -->
+    <div id="mobile-nav" class="fixed inset-0 z-30 opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out">
+        <!-- Backdrop -->
+        <div id="nav-backdrop" class="absolute inset-0 bg-black bg-opacity-50"></div>
+        
+        <!-- Menu Panel -->
+        <div id="nav-panel" class="absolute left-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col transform -translate-x-full transition-transform duration-300 ease-in-out">
+            <!-- Menu Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                <div class="text-sm text-gray-600">
+                    <span>User: </span>
+                    <span id="nav-admin-user-id" class="font-semibold text-gray-900"></span>
+                </div>
+                <button id="close-nav-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Menu Items -->
+            <div class="flex-1 py-6">
+                <nav class="space-y-2 px-4">
+                    <!-- Admin Dashboard (current page) -->
+                    <div class="flex items-center space-x-3 px-4 py-3 text-red-600 bg-red-50 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="font-medium">Admin Dashboard</span>
+                        <span class="ml-auto text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Current</span>
+                    </div>
+                    
+                    <!-- Main Application -->
+                    <button id="nav-main-app-btn" class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        </svg>
+                        <span class="font-medium">Main Application</span>
+                        <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Settings Section -->
+                    <div class="pt-4 border-t border-gray-200 mt-6">
+                        <h3 class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Settings</h3>
+                        
+                        <!-- Dark Mode Toggle -->
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                                </svg>
+                                <span class="font-medium text-gray-700">Dark Mode</span>
+                            </div>
+                            <div id="nav-theme-toggle"
+                                class="w-[45px] h-[23px] bg-gray-400 rounded-full relative cursor-pointer transition-colors duration-300">
+                                <div
+                                    class="absolute top-[2px] left-[2px] w-[19px] h-[19px] bg-white rounded-full transition-transform duration-300">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+            
+            <!-- Menu Footer with Logout -->
+            <div class="border-t border-gray-200 p-4">
+                <button id="nav-logout-btn" 
+                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Users</p>
+                        <p id="total-users" class="text-2xl font-semibold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Active Users</p>
+                        <p id="active-users" class="text-2xl font-semibold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Roles</p>
+                        <p id="total-roles" class="text-2xl font-semibold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100 text-red-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Admin Users</p>
+                        <p id="admin-users" class="text-2xl font-semibold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- User Management -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-900">User Management</h2>
+                    <button id="add-user-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors">
+                        Add New User
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Search and Filter -->
+                    <div class="mb-4 flex space-x-4">
+                        <div class="flex-1">
+                            <input 
+                                type="text" 
+                                id="user-search" 
+                                placeholder="Search users..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            >
+                        </div>
+                        <select id="role-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <option value="">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="supply_manager">Supply Manager</option>
+                            <option value="ugrai_manager">Ugrai Manager</option>
+                            <option value="purchase_manager">Purchase Manager</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="text-left px-4 py-3 font-medium text-gray-500">Name</th>
+                                    <th class="text-left px-4 py-3 font-medium text-gray-500">Email</th>
+                                    <th class="text-left px-4 py-3 font-medium text-gray-500">Role</th>
+                                    <th class="text-left px-4 py-3 font-medium text-gray-500">Status</th>
+                                    <th class="text-left px-4 py-3 font-medium text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table" class="divide-y divide-gray-200">
+                                <!-- Users will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div class="mt-4 flex justify-between items-center">
+                        <p class="text-sm text-gray-700">
+                            Showing <span id="users-start">1</span> to <span id="users-end">10</span> of <span id="users-total">0</span> users
+                        </p>
+                        <div class="flex space-x-2">
+                            <button id="users-prev" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Previous
+                            </button>
+                            <button id="users-next" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Management -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-900">Role Management</h2>
+                    <button id="add-role-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                        Add New Role
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <div id="roles-list" class="space-y-4">
+                        <!-- Roles will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="mt-8 bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            </div>
+            <div class="p-6">
+                <div id="activity-log" class="space-y-4">
+                    <!-- Activity items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Permissions Management -->
+        <div class="mt-8 bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-900">Section Permissions Management</h2>
+                <button id="save-permissions-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors">
+                    Save All Permissions
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">Control which sections each role can access in the main application.</p>
+                
+                <div id="permissions-matrix" class="overflow-x-auto">
+                    <!-- Permissions matrix will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignees Management -->
+        <div class="mt-8 bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Assignees Management</h2>
+                <p class="text-sm text-gray-600 mt-1">Manage users who can be assigned to Supply and UGRAI tasks</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Supply Assignees -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-md font-semibold text-gray-800">Supply Assignees</h3>
+                            <button id="add-supply-assignee-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                                Add Assignee
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">Users who can be assigned to Bills to Dispatch</p>
+                        
+                        <div class="space-y-2" id="supply-assignees-list">
+                            <!-- Supply assignees will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- UGRAI Assignees -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-md font-semibold text-gray-800">UGRAI Assignees</h3>
+                            <button id="add-ugrai-assignee-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors">
+                                Add Assignee
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">Users who can be assigned to UGRAI sectors</p>
+                        
+                        <div class="space-y-2" id="ugrai-assignees-list">
+                            <!-- UGRAI assignees will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Add New User</h3>
+            </div>
+            
+            <form id="add-user-form" class="p-6 space-y-4">
+                <div>
+                    <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="user-name" 
+                        name="name"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="Enter full name"
+                    >
+                </div>
+
+                <div>
+                    <label for="user-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="user-email" 
+                        name="email"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="Enter email address"
+                    >
+                </div>
+
+                <div>
+                    <label for="user-password" class="block text-sm font-medium text-gray-700 mb-1">Temporary Password</label>
+                    <input 
+                        type="password" 
+                        id="user-password" 
+                        name="password"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="Enter temporary password"
+                    >
+                </div>
+
+                <div>
+                    <label for="user-role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select 
+                        id="user-role" 
+                        name="role"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                        <option value="">Select a role</option>
+                        <!-- Roles will be populated here -->
+                    </select>
+                </div>
+
+                <div>
+                    <label for="user-department" class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input 
+                        type="text" 
+                        id="user-department" 
+                        name="department"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="Enter department (optional)"
+                    >
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button 
+                        type="button" 
+                        id="cancel-user-btn"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        Create User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Edit User</h3>
+            </div>
+            
+            <form id="edit-user-form" class="p-6 space-y-4">
+                <input type="hidden" id="edit-user-id">
+                
+                <div>
+                    <label for="edit-user-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="edit-user-name" 
+                        name="name"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                </div>
+
+                <div>
+                    <label for="edit-user-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="edit-user-email" 
+                        name="email"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                </div>
+
+                <div>
+                    <label for="edit-user-role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select 
+                        id="edit-user-role" 
+                        name="role"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                        <!-- Roles will be populated here -->
+                    </select>
+                </div>
+
+                <div>
+                    <label for="edit-user-department" class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input 
+                        type="text" 
+                        id="edit-user-department" 
+                        name="department"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                </div>
+
+                <div class="flex items-center">
+                    <input 
+                        type="checkbox" 
+                        id="edit-user-active"
+                        class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                    >
+                    <label for="edit-user-active" class="ml-2 block text-sm text-gray-700">
+                        Active User
+                    </label>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button 
+                        type="button" 
+                        id="cancel-edit-btn"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        Update User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Role Modal -->
+    <div id="add-role-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                <h3 class="text-lg font-semibold text-gray-900">Add New Role</h3>
+            </div>
+            
+            <form id="add-role-form" class="flex flex-col overflow-hidden flex-1">
+                <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                    <div>
+                        <label for="role-name" class="block text-sm font-medium text-gray-700 mb-1">Role Name</label>
+                        <input 
+                            type="text" 
+                            id="role-name" 
+                            name="name"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            placeholder="Enter role name"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="role-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea 
+                            id="role-description" 
+                            name="description"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            placeholder="Enter role description"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Permissions</label>
+                        <div class="space-y-4">
+                            <!-- Supply Section -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                Supply Management
+                            </h4>
+                            <div class="grid grid-cols-1 gap-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="supply.base_file.view" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Base File Management</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="supply.upload.view" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Upload Supply Data</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="supply.dispatch.view" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Bills to Dispatch</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="supply.in_progress.view" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Supplies in Progress</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="supply.management.view" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Supply Management</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- UGRAI Section -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                                UGRAI Management
+                            </h4>
+                            <div class="grid grid-cols-1 gap-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="ugrai.base_file.view" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">UGRAI Base File</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="ugrai.total.view" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Total Ugrai</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="ugrai.issue.view" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">UGRAI Issue</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="ugrai.in_progress.view" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">UGRAI in Progress</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="ugrai.management.view" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">UGRAI Management</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Purchase Section -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                                Purchase Management
+                            </h4>
+                            <div class="grid grid-cols-1 gap-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="purchase.base_file.view" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Purchase Base File</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="purchase.entry.view" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Purchase Entry</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="purchase.accounting.view" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Purchase Accounting</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="purchase.management.view" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Purchase Management</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="purchase.purchased.view" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Purchase Purchased</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Permissions -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-orange-700 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
+                                Analysis Permissions
+                            </h4>
+                            <div class="grid grid-cols-1 gap-2 pl-5">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="analysis.supply.view" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Supply Analysis</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="analysis.ugrai.view" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Ugrai Analysis</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="analysis.purchase.view" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Purchase Analysis</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="permissions" value="analysis.pending_bills.view" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">Pending Bills Analysis</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Selection Buttons -->
+                    <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="selectAllPermissions()" class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                            Select All
+                        </button>
+                        <button type="button" onclick="clearAllPermissions()" class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors">
+                            Clear All
+                        </button>
+                        <button type="button" onclick="selectSupplyPermissions()" class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
+                            Supply Only
+                        </button>
+                        <button type="button" onclick="selectUgraiPermissions()" class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors">
+                            UGRAI Only
+                        </button>
+                        <button type="button" onclick="selectPurchasePermissions()" class="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors">
+                            Purchase Only
+                        </button>
+                        <button type="button" onclick="selectAnalysisPermissions()" class="px-3 py-1 text-xs bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors">
+                            Analysis Only
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 flex-shrink-0 bg-white">
+                    <button 
+                        type="button" 
+                        id="cancel-role-btn"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Create Role
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Assignee Modal -->
+    <div id="add-assignee-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900" id="assignee-modal-title">Add Assignee</h3>
+            </div>
+            
+            <form id="add-assignee-form" class="p-6 space-y-4">
+                <input type="hidden" id="assignee-type" name="type" value="">
+                
+                <div>
+                    <label for="assignee-user" class="block text-sm font-medium text-gray-700 mb-1">Select User</label>
+                    <select 
+                        id="assignee-user" 
+                        name="user"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">-- Select a user --</option>
+                        <!-- Users will be populated dynamically -->
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Only users without this role will be shown</p>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button 
+                        type="button" 
+                        id="cancel-assignee-btn"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Add Assignee
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase Configuration -->
+    <!-- Backend Configuration -->
+    <script>
+        window.__backend_url = window.DLS_API_URL || "http://localhost:5000/api";
+        window.__app_id = "beautybasket-dls";
+    </script>
+    <!-- JavaScript -->
+    <script>
+        // Initialize Supabase with explicit auth config for Chromium compatibility
+        const supabaseClient = window.supabase.createClient(
+            window.__supabase_url, 
+            window.__supabase_anon_key,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage,
+                    flowType: 'pkce'
+                }
+            }
+        );
+
+        // ==============================================
+        // RBAC SERVICE CLASS - Updated for Simplified Schema
+        // ==============================================
+        class RBACService {
+            constructor(supabaseClient) {
+                this.supabase = supabaseClient;
+                this.currentUser = null;
+                this.userPermissions = [];
+                this.userRoles = [];
+            }
+
+            async initialize() {
+                try {
+                    const { data: { session } } = await this.supabase.auth.getSession();
+                    if (!session) {
+                        throw new Error('No authenticated user found');
+                    }
+
+                    this.currentUser = session.user;
+                    await this.loadUserPermissions();
+                    await this.loadUserRoles();
+                    
+                    console.log('RBAC initialized for user:', this.currentUser.id);
+                    return true;
+                } catch (error) {
+                    console.error('RBAC initialization failed:', error);
+                    return false;
+                }
+            }
+
+            async loadUserPermissions() {
+                if (!this.currentUser) return;
+
+                try {
+                    const { data, error } = await this.supabase.rpc('get_user_permissions');
+
+                    if (error) throw error;
+                    
+                    // data is now a JSONB array of permission strings
+                    this.userPermissions = Array.isArray(data) ? data : [];
+                    console.log('Loaded permissions:', this.userPermissions);
+                } catch (error) {
+                    console.error('Failed to load user permissions:', error);
+                    this.userPermissions = [];
+                }
+            }
+
+            async loadUserRoles() {
+                if (!this.currentUser) return;
+
+                try {
+                    const { data, error } = await this.supabase.rpc('get_user_roles_with_details');
+
+                    if (error) throw error;
+
+                    this.userRoles = data || [];
+                    console.log('Loaded roles:', this.userRoles);
+                } catch (error) {
+                    console.error('Failed to load user roles:', error);
+                    this.userRoles = [];
+                }
+            }
+
+            hasPermission(permissionName) {
+                return this.userPermissions.includes(permissionName);
+            }
+
+            hasRole(roleName) {
+                return this.userRoles.some(r => r.role_name === roleName);
+            }
+
+            isAdmin() {
+                return this.hasRole('admin');
+            }
+
+            async getAllUsersWithRoles() {
+                try {
+                    const { data, error } = await this.supabase.rpc('get_all_users_with_roles');
+
+                    if (error) throw error;
+                    return data || [];
+                } catch (error) {
+                    console.error('Failed to fetch users with roles:', error);
+                    return [];
+                }
+            }
+
+            async getAllRoles() {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('roles')
+                        .select('*')
+                        .order('name');
+
+                    if (error) throw error;
+                    
+                    // Add user count to each role
+                    const rolesWithCount = await Promise.all(data.map(async (role) => {
+                        const { data: userCount } = await this.supabase
+                            .from('user_roles')
+                            .select('user_id', { count: 'exact' })
+                            .eq('role_id', role.id);
+                        
+                        return {
+                            ...role,
+                            user_count: userCount?.length || 0
+                        };
+                    }));
+                    
+                    return rolesWithCount;
+                } catch (error) {
+                    console.error('Failed to fetch roles:', error);
+                    return [];
+                }
+            }
+
+            async getAllPermissions() {
+                try {
+                    // For simplified schema, we'll extract unique permissions from all roles
+                    const { data: roles, error } = await this.supabase
+                        .from('roles')
+                        .select('permissions');
+
+                    if (error) throw error;
+
+                    const allPermissions = new Set();
+                    roles?.forEach(role => {
+                        if (role.permissions && Array.isArray(role.permissions)) {
+                            role.permissions.forEach(perm => allPermissions.add(perm));
+                        }
+                    });
+
+                    // Convert to permission objects
+                    return Array.from(allPermissions).map(perm => ({
+                        id: perm,
+                        name: perm,
+                        description: this.getPermissionDescription(perm),
+                        section_name: this.getPermissionSection(perm)
+                    }));
+                } catch (error) {
+                    console.error('Failed to fetch permissions:', error);
+                    return [];
+                }
+            }
+
+            getPermissionDescription(permission) {
+                const descriptions = {
+                    'admin.dashboard.view': 'Access to admin dashboard',
+                    'admin.users.create': 'Create new users',
+                    'admin.users.read': 'View user information',
+                    'admin.users.update': 'Edit user information', 
+                    'admin.users.delete': 'Delete users',
+                    'supply.in_progress.view': 'View supplies in progress',
+                    'ugrai.base_file.view': 'View UGRAI base file',
+                    'ugrai.total.view': 'View total UGRAI combined data',
+                    'ugrai.issue.view': 'View UGRAI issue',
+                    'ugrai.in_progress.view': 'View ugrai in progress',
+                    'ugrai.management.view': 'View ugrai management',
+                    'supply.management.view': 'View supply management',
+                    'purchase.accounting.view': 'View purchase accounting',
+                    'analysis.supply.view': 'View supply analysis and reports',
+                    'analysis.ugrai.view': 'View ugrai analysis and reports',
+                    'analysis.purchase.view': 'View purchase analysis and reports',
+                    'analysis.pending_bills.view': 'View pending bills analysis and reports'
+                };
+                return descriptions[permission] || permission;
+            }
+
+            getPermissionSection(permission) {
+                if (permission.startsWith('admin.')) return 'Admin';
+                if (permission.startsWith('supply.')) return 'Supply';
+                if (permission.startsWith('ugrai.')) return 'Ugrai';
+                if (permission.startsWith('purchase.')) return 'Purchase';
+                if (permission.startsWith('analysis.')) return 'Analysis';
+                return 'General';
+            }
+
+            async updateUserRole(userId, roleName) {
+                try {
+                    // Get the role ID
+                    const { data: role, error: roleError } = await this.supabase
+                        .from('roles')
+                        .select('id')
+                        .eq('name', roleName)
+                        .single();
+
+                    if (roleError) throw roleError;
+
+                    // Remove existing roles for this user
+                    await this.supabase
+                        .from('user_roles')
+                        .delete()
+                        .eq('user_id', userId);
+
+                    // Add the new role
+                    const { error } = await this.supabase
+                        .from('user_roles')
+                        .insert({
+                            user_id: userId,
+                            role_id: role.id,
+                            assigned_by: this.currentUser.id
+                        });
+
+                    if (error) throw error;
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to update user role:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async updateUser(userId, profileData) {
+                try {
+                    if (userId !== this.currentUser.id && !this.isAdmin()) {
+                        throw new Error('Insufficient permissions to update user profile');
+                    }
+
+                    const { data, error } = await this.supabase
+                        .from('user_profiles')
+                        .update({
+                            full_name: profileData.full_name,
+                            department: profileData.department,
+                            is_active: profileData.is_active,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('user_id', userId)
+                        .select();
+
+                    if (error) throw error;
+                    return { success: true, data: data[0] };
+                } catch (error) {
+                    console.error('Failed to update user profile:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async createUserWithRole(userData, roleName) {
+                try {
+                    console.log('Creating user with data:', userData);
+                    console.log('Assigning role:', roleName);
+
+                    // Create user using regular signup (requires enabling signups in Supabase)
+                    const { data: authData, error: authError } = await this.supabase.auth.signUp({
+                        email: userData.email,
+                        password: userData.password,
+                        options: {
+                            data: {
+                                full_name: userData.full_name,
+                                department: userData.department
+                            }
+                        }
+                    });
+
+                    if (authError) {
+                        console.error('Auth signup error:', authError);
+                        throw authError;
+                    }
+
+                    console.log('User created successfully:', authData.user?.id);
+
+                    // Wait a moment for user to be fully committed to database
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // Get role ID
+                    const { data: role, error: roleError } = await this.supabase
+                        .from('roles')
+                        .select('id')
+                        .eq('name', roleName)
+                        .single();
+
+                    if (roleError) {
+                        console.error('Role lookup error:', roleError);
+                        throw roleError;
+                    }
+
+                    console.log('Found role:', role);
+
+                    // Create user profile manually (no trigger)
+                    console.log('Creating user profile manually');
+                    const { error: profileCreateError } = await this.supabase
+                        .from('user_profiles')
+                        .insert({
+                            user_id: authData.user.id,
+                            email: userData.email,
+                            full_name: userData.full_name,
+                            department: userData.department,
+                            is_active: userData.is_active
+                        });
+
+                    if (profileCreateError) {
+                        console.error('Profile creation error:', profileCreateError);
+                        throw profileCreateError;
+                    }
+
+                    console.log('Profile created successfully');
+
+                    // Create role assignment
+                    console.log('Creating role assignment');
+                    const { error: roleAssignError } = await this.supabase
+                        .from('user_roles')
+                        .insert({
+                            user_id: authData.user.id,
+                            role_id: role.id,
+                            assigned_by: this.currentUser.id
+                        });
+
+                    if (roleAssignError) {
+                        console.error('Role assignment error:', roleAssignError);
+                        throw roleAssignError;
+                    }
+
+                    console.log('Role assigned successfully');
+
+                    console.log('User creation completed successfully');
+                    return { success: true, user: authData.user };
+                } catch (error) {
+                    console.error('Failed to create user with role:', error);
+                    console.error('Error details:', error.message, error.code, error.details);
+                    throw error;
+                }
+            }
+
+            async deleteUser(userId) {
+                try {
+                    // Delete user profile and role assignments first (auth.users has CASCADE)
+                    const { error: profileError } = await this.supabase
+                        .from('user_profiles')
+                        .delete()
+                        .eq('user_id', userId);
+                    
+                    if (profileError) {
+                        console.warn('Could not delete user profile:', profileError);
+                        // Continue anyway, as auth deletion will cascade
+                    }
+                    
+                    const { error: roleError } = await this.supabase
+                        .from('user_roles')
+                        .delete()
+                        .eq('user_id', userId);
+                        
+                    if (roleError) {
+                        console.warn('Could not delete user roles:', roleError);
+                        // Continue anyway, as auth deletion will cascade
+                    }
+                    
+                    // Note: We cannot delete from auth.users table directly with anon key
+                    // The user will be marked as deleted in our system but remain in auth
+                    console.log(`User ${userId} removed from system (profile and roles deleted)`);
+                    
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to delete user:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async roleHasPermission(roleId, permissionName) {
+                try {
+                    const { data: role, error } = await this.supabase
+                        .from('roles')
+                        .select('permissions')
+                        .eq('id', roleId)
+                        .single();
+
+                    if (error) throw error;
+                    
+                    return role.permissions?.includes(permissionName) || false;
+                } catch (error) {
+                    console.error('Failed to check role permission:', error);
+                    return false;
+                }
+            }
+
+            async grantPermissionToRole(roleId, permissionName) {
+                try {
+                    const { data: role, error: fetchError } = await this.supabase
+                        .from('roles')
+                        .select('permissions')
+                        .eq('id', roleId)
+                        .single();
+
+                    if (fetchError) throw fetchError;
+
+                    const permissions = role.permissions || [];
+                    if (!permissions.includes(permissionName)) {
+                        permissions.push(permissionName);
+                        
+                        const { error } = await this.supabase
+                            .from('roles')
+                            .update({ permissions })
+                            .eq('id', roleId);
+
+                        if (error) throw error;
+                    }
+                    
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to grant permission to role:', error);
+                    throw error;
+                }
+            }
+
+            async revokePermissionFromRole(roleId, permissionName) {
+                try {
+                    const { data: role, error: fetchError } = await this.supabase
+                        .from('roles')
+                        .select('permissions')
+                        .eq('id', roleId)
+                        .single();
+
+                    if (fetchError) throw fetchError;
+
+                    const permissions = (role.permissions || []).filter(p => p !== permissionName);
+                    
+                    const { error } = await this.supabase
+                        .from('roles')
+                        .update({ permissions })
+                        .eq('id', roleId);
+
+                    if (error) throw error;
+                    
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to revoke permission from role:', error);
+                    throw error;
+                }
+            }
+
+            async getDashboardStats() {
+                try {
+                    const { data, error } = await this.supabase.rpc('get_dashboard_stats');
+                    if (error) throw error;
+                    
+                    return data[0] || {
+                        total_users: 0,
+                        active_users: 0, 
+                        total_roles: 0,
+                        admin_users: 0
+                    };
+                } catch (error) {
+                    console.error('Failed to get dashboard stats:', error);
+                    return {
+                        total_users: 0,
+                        active_users: 0,
+                        total_roles: 0,
+                        admin_users: 0
+                    };
+                }
+            }
+
+            async createRole(roleData) {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('roles')
+                        .insert(roleData)
+                        .select();
+                    
+                    if (error) throw error;
+                    return { success: true, data: data[0] };
+                } catch (error) {
+                    console.error('Failed to create role:', error);
+                    throw error;
+                }
+            }
+
+            async deleteRole(roleId) {
+                try {
+                    const { error } = await this.supabase
+                        .from('roles')
+                        .delete()
+                        .eq('id', roleId);
+                    
+                    if (error) throw error;
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to delete role:', error);
+                    throw error;
+                }
+            }
+
+            async getDashboardStats() {
+                try {
+                    const [rolesData, usersData, userRolesData] = await Promise.all([
+                        this.supabase.from('roles').select('id'),
+                        this.supabase.from('user_profiles').select('id, is_active'),
+                        this.supabase.from('user_roles').select('user_id').eq('role_id', 
+                            (await this.supabase.from('roles').select('id').eq('name', 'admin').single()).data?.id
+                        )
+                    ]);
+
+                    const totalRoles = rolesData.data?.length || 0;
+                    const totalUsers = usersData.data?.length || 0;
+                    const activeUsers = usersData.data?.filter(u => u.is_active).length || 0;
+                    const adminUsers = userRolesData.data?.length || 0;
+
+                    return {
+                        totalRoles,
+                        totalUsers,
+                        activeUsers,
+                        adminUsers
+                    };
+                } catch (error) {
+                    console.error('Failed to fetch dashboard stats:', error);
+                    return {
+                        totalRoles: 0,
+                        totalUsers: 0,
+                        activeUsers: 0,
+                        adminUsers: 0
+                    };
+                }
+            }
+            
+            // Assignee management methods
+            async getUsersByRole(roleName) {
+                try {
+                    // Get role ID first
+                    const { data: role, error: roleError } = await this.supabase
+                        .from('roles')
+                        .select('id')
+                        .eq('name', roleName)
+                        .single();
+                    
+                    if (roleError) throw roleError;
+                    
+                    // Get user IDs with this role
+                    const { data: userRoles, error: userRolesError } = await this.supabase
+                        .from('user_roles')
+                        .select('user_id')
+                        .eq('role_id', role.id);
+                    
+                    if (userRolesError) throw userRolesError;
+                    
+                    if (!userRoles || userRoles.length === 0) {
+                        return [];
+                    }
+                    
+                    // Get user IDs array
+                    const userIds = userRoles.map(ur => ur.user_id);
+                    
+                    // Get user profiles for these user IDs
+                    const { data: profiles, error: profilesError } = await this.supabase
+                        .from('user_profiles')
+                        .select('user_id, full_name, email, department')
+                        .in('user_id', userIds);
+                    
+                    if (profilesError) throw profilesError;
+                    
+                    return profiles || [];
+                } catch (error) {
+                    console.error('Failed to get users by role:', error);
+                    return [];
+                }
+            }
+            
+            async assignRoleToUser(userId, roleName) {
+                try {
+                    // Get role ID
+                    const { data: role, error: roleError } = await this.supabase
+                        .from('roles')
+                        .select('id')
+                        .eq('name', roleName)
+                        .single();
+                    
+                    if (roleError) throw roleError;
+                    
+                    // Check if already assigned
+                    const { data: existing } = await this.supabase
+                        .from('user_roles')
+                        .select('id')
+                        .eq('user_id', userId)
+                        .eq('role_id', role.id)
+                        .single();
+                    
+                    if (existing) {
+                        console.log('User already has this role');
+                        return { success: true };
+                    }
+                    
+                    // Assign role
+                    const { error } = await this.supabase
+                        .from('user_roles')
+                        .insert({
+                            user_id: userId,
+                            role_id: role.id,
+                            assigned_by: this.currentUser.id
+                        });
+                    
+                    if (error) throw error;
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to assign role to user:', error);
+                    throw error;
+                }
+            }
+            
+            async removeRoleFromUser(userId, roleName) {
+                try {
+                    // Get role ID
+                    const { data: role, error: roleError } = await this.supabase
+                        .from('roles')
+                        .select('id')
+                        .eq('name', roleName)
+                        .single();
+                    
+                    if (roleError) throw roleError;
+                    
+                    // Remove role assignment
+                    const { error } = await this.supabase
+                        .from('user_roles')
+                        .delete()
+                        .eq('user_id', userId)
+                        .eq('role_id', role.id);
+                    
+                    if (error) throw error;
+                    return { success: true };
+                } catch (error) {
+                    console.error('Failed to remove role from user:', error);
+                    throw error;
+                }
+            }
+        }
+
+        // Initialize RBAC Service
+        const rbac = new RBACService(supabaseClient);
+        
+        // Make RBAC service globally accessible
+        window.rbacService = rbac;
+
+        // State
+        let currentPage = 1;
+        let usersPerPage = 10;
+        let allUsers = [];
+        let filteredUsers = [];
+        let allRoles = [];
+        let allPermissions = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeDashboard();
+            setupEventListeners();
+            
+            // Initialize theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        });
+
+        // Initialize dashboard with RBAC
+        async function initializeDashboard() {
+            try {
+                // Check authentication and RBAC
+                const initialized = await rbac.initialize();
+                if (!initialized) {
+                    window.location.replace('login.html');
+                    return;
+                }
+
+                // Check if user is admin
+                if (!rbac.isAdmin()) {
+                    Swal.fire({
+                        icon: 'error', 
+                        title: 'Access Denied',
+                        text: 'You need admin privileges to access this dashboard.',
+                        confirmButtonText: 'Go to Main App'
+                    }).then(() => {
+                        window.location.href = 'supply.html';
+                    });
+                    return;
+                }
+
+                // Update UI with user info
+                const user = rbac.currentUser;
+                document.getElementById('admin-name').textContent = user.email;
+                
+                const navAdminUserId = document.getElementById('nav-admin-user-id');
+                if (navAdminUserId) {
+                    navAdminUserId.textContent = user.email;
+                }
+
+                // Load dashboard data
+                await loadDashboardData();
+            } catch (error) {
+                console.error('Dashboard initialization failed:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Initialization Failed',
+                    text: 'Failed to initialize admin dashboard. Please try again.',
+                    confirmButtonText: 'Retry'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            await Promise.all([
+                loadUsers(),
+                loadRoles(),
+                loadPermissions(),
+                loadStats(),
+                loadActivityLog(),
+                loadAssignees()
+            ]);
+        }
+
+        // Load users with RBAC
+        async function loadUsers() {
+            try {
+                allUsers = await rbac.getAllUsersWithRoles();
+                filteredUsers = [...allUsers];
+                renderUsers();
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Load Failed',
+                    text: 'Failed to load users. Please check your database setup.'
+                });
+            }
+        }
+
+        // Load roles with RBAC
+        async function loadRoles() {
+            try {
+                allRoles = await rbac.getAllRoles();
+                renderRoles();
+                populateRoleSelects();
+            } catch (error) {
+                console.error('Failed to load roles:', error);
+            }
+        }
+
+        // Load permissions with RBAC
+        async function loadPermissions() {
+            try {
+                allPermissions = await rbac.getAllPermissions();
+                
+                // Ensure roles are loaded before rendering matrix
+                if (!allRoles || allRoles.length === 0) {
+                    console.log('Loading roles for permissions matrix...');
+                    allRoles = await rbac.getAllRoles();
+                }
+                
+                await renderPermissionsMatrix();
+            } catch (error) {
+                console.error('Failed to load permissions:', error);
+            }
+        }
+
+        // Load stats with RBAC
+        async function loadStats() {
+            try {
+                const stats = await rbac.getDashboardStats();
+                document.getElementById('total-users').textContent = stats.totalUsers;
+                document.getElementById('active-users').textContent = stats.activeUsers;
+                document.getElementById('total-roles').textContent = stats.totalRoles;
+                document.getElementById('admin-users').textContent = stats.adminUsers;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load activity log (placeholder - will show message for now)
+        async function loadActivityLog() {
+            document.getElementById('activity-log').innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="mt-2 text-sm text-gray-500">Audit logs will be displayed here</p>
+                    <p class="text-xs text-gray-400">All role and permission changes are automatically tracked</p>
+                </div>
+            `;
+        }
+
+        // Load assignees
+        async function loadAssignees() {
+            try {
+                await Promise.all([
+                    loadSupplyAssignees(),
+                    loadUgraiAssignees()
+                ]);
+            } catch (error) {
+                console.error('Failed to load assignees:', error);
+            }
+        }
+
+        async function loadSupplyAssignees() {
+            try {
+                const assignees = await rbac.getUsersByRole('supply_in_progress');
+                renderSupplyAssignees(assignees);
+            } catch (error) {
+                console.error('Failed to load supply assignees:', error);
+                document.getElementById('supply-assignees-list').innerHTML = `
+                    <p class="text-sm text-red-600">Failed to load supply assignees</p>
+                `;
+            }
+        }
+
+        async function loadUgraiAssignees() {
+            try {
+                const assignees = await rbac.getUsersByRole('ugrai_in_progress');
+                renderUgraiAssignees(assignees);
+            } catch (error) {
+                console.error('Failed to load UGRAI assignees:', error);
+                document.getElementById('ugrai-assignees-list').innerHTML = `
+                    <p class="text-sm text-red-600">Failed to load UGRAI assignees</p>
+                `;
+            }
+        }
+
+        function renderSupplyAssignees(assignees) {
+            const container = document.getElementById('supply-assignees-list');
+            if (!assignees || assignees.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-gray-500 text-sm border border-dashed border-gray-300 rounded-lg">
+                        No supply assignees yet. Click "Add Assignee" to add one.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = assignees.map(user => `
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span class="text-blue-600 font-semibold text-sm">${(user.full_name || user.email).charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${user.full_name || user.email}</p>
+                            <p class="text-xs text-gray-500">${user.email}</p>
+                        </div>
+                    </div>
+                    <button 
+                        onclick="removeAssignee('${user.user_id}', 'supply_in_progress')" 
+                        class="text-red-600 hover:text-red-800 text-sm"
+                    >
+                        Remove
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderUgraiAssignees(assignees) {
+            const container = document.getElementById('ugrai-assignees-list');
+            if (!assignees || assignees.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-gray-500 text-sm border border-dashed border-gray-300 rounded-lg">
+                        No UGRAI assignees yet. Click "Add Assignee" to add one.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = assignees.map(user => `
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span class="text-purple-600 font-semibold text-sm">${(user.full_name || user.email).charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${user.full_name || user.email}</p>
+                            <p class="text-xs text-gray-500">${user.email}</p>
+                        </div>
+                    </div>
+                    <button 
+                        onclick="removeAssignee('${user.user_id}', 'ugrai_in_progress')" 
+                        class="text-red-600 hover:text-red-800 text-sm"
+                    >
+                        Remove
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function removeAssignee(userId, roleName) {
+            const result = await Swal.fire({
+                title: 'Remove Assignee?',
+                text: 'This user will no longer appear in assignment dropdowns',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, remove'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    await rbac.removeRoleFromUser(userId, roleName);
+                    await loadAssignees();
+                    Swal.fire('Removed!', 'Assignee has been removed', 'success');
+                } catch (error) {
+                    console.error('Failed to remove assignee:', error);
+                    Swal.fire('Error', 'Failed to remove assignee', 'error');
+                }
+            }
+        }
+
+        // Render users table
+        function renderUsers() {
+            const start = (currentPage - 1) * usersPerPage;
+            const end = start + usersPerPage;
+            const pageUsers = filteredUsers.slice(start, end);
+            
+            document.getElementById('users-table').innerHTML = pageUsers.map(user => {
+                const displayName = user.full_name || user.name || user.email;
+                const roleName = user.roles ? user.roles[0]?.name || 'No Role' : user.role || 'No Role';
+                const roleDisplay = roleName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                return `
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="text-sm font-medium text-gray-900">${displayName}</div>
+                            <div class="text-xs text-gray-500">${user.department || 'No Department'}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900">${user.email}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                ${roleDisplay}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${user.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <button onclick="editUser('${user.id}')" class="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                            <button onclick="toggleUserStatus('${user.id}')" class="text-yellow-600 hover:text-yellow-800 mr-3">
+                                ${user.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Update pagination info
+            document.getElementById('users-start').textContent = start + 1;
+            document.getElementById('users-end').textContent = Math.min(end, filteredUsers.length);
+            document.getElementById('users-total').textContent = filteredUsers.length;
+            
+            // Update pagination buttons
+            document.getElementById('users-prev').disabled = currentPage === 1;
+            document.getElementById('users-next').disabled = end >= filteredUsers.length;
+        }
+
+        // Render roles
+        function renderRoles() {
+            document.getElementById('roles-list').innerHTML = allRoles.map(role => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-medium text-gray-900">${role.name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
+                            <p class="text-sm text-gray-600 mt-1">${role.description}</p>
+                            <p class="text-xs text-gray-500 mt-2">${role.user_count} user(s) assigned</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editRole('${role.id}')" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                            <button onclick="deleteRole('${role.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Populate role selects
+        function populateRoleSelects() {
+            const selects = ['user-role', 'edit-user-role'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select a role</option>' + 
+                    allRoles.map(role => `
+                        <option value="${role.name}">${role.name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+                    `).join('');
+            });
+        }
+
+        // Hamburger Navigation Functions
+        function setupHamburgerNavigation() {
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const mobileNav = document.getElementById('mobile-nav');
+            const navPanel = document.getElementById('nav-panel');
+            const closeNavBtn = document.getElementById('close-nav-btn');
+            const navBackdrop = document.getElementById('nav-backdrop');
+            const themeToggle = document.getElementById('nav-theme-toggle');
+
+            // Open navigation
+            hamburgerBtn.addEventListener('click', function() {
+                // Show backdrop with fade-in
+                mobileNav.classList.remove('opacity-0', 'pointer-events-none');
+                mobileNav.classList.add('opacity-100');
+                
+                // Slide in panel after a tiny delay for smooth animation
+                setTimeout(() => {
+                    navPanel.classList.remove('-translate-x-full');
+                }, 10);
+            });
+
+            // Close navigation
+            function closeNavigation() {
+                // Slide out panel first
+                navPanel.classList.add('-translate-x-full');
+                
+                // Fade out backdrop after panel animation
+                setTimeout(() => {
+                    mobileNav.classList.remove('opacity-100');
+                    mobileNav.classList.add('opacity-0', 'pointer-events-none');
+                }, 300);
+            }
+
+            closeNavBtn.addEventListener('click', closeNavigation);
+            navBackdrop.addEventListener('click', closeNavigation);
+
+            // Theme toggle functionality
+            if (themeToggle) {
+                const toggleBall = themeToggle.querySelector('div');
+                
+                // Initialize theme state
+                updateToggleBallPosition(themeToggle, toggleBall);
+                
+                themeToggle.addEventListener('click', function() {
+                    const currentTheme = localStorage.getItem('theme') || 'light';
+                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                    
+                    localStorage.setItem('theme', newTheme);
+                    applyTheme(newTheme);
+                    updateToggleBallPosition(themeToggle, toggleBall);
+                });
+            }
+
+            // Handle escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeNavigation();
+                }
+            });
+        }
+
+        function updateToggleBallPosition(toggle, ball) {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                toggle.classList.remove('bg-gray-400');
+                toggle.classList.add('bg-blue-600');
+                ball.style.transform = 'translateX(22px)';
+            } else {
+                toggle.classList.remove('bg-blue-600');
+                toggle.classList.add('bg-gray-400');
+                ball.style.transform = 'translateX(0px)';
+            }
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Hamburger Navigation
+            setupHamburgerNavigation();
+            
+            // Navigation
+            document.getElementById('nav-main-app-btn').onclick = () => window.location.href = 'supply.html';
+            document.getElementById('nav-logout-btn').onclick = logout;
+            
+            // User management
+            document.getElementById('add-user-btn').onclick = () => showModal('add-user-modal');
+            document.getElementById('cancel-user-btn').onclick = () => hideModal('add-user-modal');
+            document.getElementById('cancel-edit-btn').onclick = () => hideModal('edit-user-modal');
+            
+            // Role management
+            document.getElementById('add-role-btn').onclick = () => showModal('add-role-modal');
+            document.getElementById('cancel-role-btn').onclick = () => hideModal('add-role-modal');
+            
+            // Assignee management
+            document.getElementById('add-supply-assignee-btn').onclick = () => showAddAssigneeModal('supply');
+            document.getElementById('add-ugrai-assignee-btn').onclick = () => showAddAssigneeModal('ugrai');
+            document.getElementById('cancel-assignee-btn').onclick = () => hideModal('add-assignee-modal');
+            document.getElementById('add-assignee-form').onsubmit = handleAddAssignee;
+            
+            // Search and filter
+            document.getElementById('user-search').oninput = filterUsers;
+            document.getElementById('role-filter').onchange = filterUsers;
+            
+            // Pagination
+            document.getElementById('users-prev').onclick = () => changePage(-1);
+            document.getElementById('users-next').onclick = () => changePage(1);
+            
+            // Forms
+            document.getElementById('add-user-form').onsubmit = handleAddUser;
+            document.getElementById('edit-user-form').onsubmit = handleEditUser;
+            document.getElementById('add-role-form').onsubmit = handleAddRole;
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        // Filter users
+        function filterUsers() {
+            const search = document.getElementById('user-search').value.toLowerCase();
+            const roleFilter = document.getElementById('role-filter').value;
+            
+            filteredUsers = allUsers.filter(user => {
+                const displayName = user.full_name || user.name || user.email;
+                const matchesSearch = displayName.toLowerCase().includes(search) || 
+                                    user.email.toLowerCase().includes(search);
+                
+                const userRole = user.roles ? user.roles[0]?.name : user.role;
+                const matchesRole = !roleFilter || userRole === roleFilter;
+                
+                return matchesSearch && matchesRole;
+            });
+            
+            currentPage = 1;
+            renderUsers();
+        }
+
+        // Pagination
+        function changePage(direction) {
+            currentPage += direction;
+            renderUsers();
+        }
+
+        // User actions
+        function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (user) {
+                document.getElementById('edit-user-id').value = user.id;
+                document.getElementById('edit-user-name').value = user.full_name || user.name || '';
+                document.getElementById('edit-user-email').value = user.email;
+                
+                const currentRole = user.roles ? user.roles[0]?.name : user.role;
+                document.getElementById('edit-user-role').value = currentRole || '';
+                
+                document.getElementById('edit-user-department').value = user.department || '';
+                document.getElementById('edit-user-active').checked = user.is_active;
+                showModal('edit-user-modal');
+            }
+        }
+
+        async function deleteUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+            
+            const result = await Swal.fire({
+                title: 'Delete User',
+                html: `
+                    <p>Are you sure you want to <strong>permanently delete</strong> this user?</p>
+                    <div class="mt-3 p-3 bg-gray-100 rounded">
+                        <div><strong>Name:</strong> ${user.full_name || user.name || 'No name'}</div>
+                        <div><strong>Email:</strong> ${user.email}</div>
+                        <div><strong>Role:</strong> ${user.roles ? user.roles[0]?.display_name || 'No Role' : user.role || 'No Role'}</div>
+                    </div>
+                    <div class="mt-3 text-red-600 text-sm">
+                        <strong>Warning:</strong> This action cannot be undone. The user will be permanently removed from the system.
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete User',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                focusCancel: true
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    Swal.fire({
+                        title: 'Deleting User...',
+                        text: 'Please wait while we remove the user from the system.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    const deleteResult = await rbacService.deleteUser(userId);
+                    
+                    if (deleteResult.success) {
+                        await Swal.fire({
+                            title: 'User Deleted',
+                            text: `${user.full_name || user.email} has been successfully deleted.`,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        
+                        // Refresh the users list
+                        allUsers = await rbacService.getAllUsersWithRoles();
+                        filteredUsers = [...allUsers];
+                        renderUsers();
+                    } else {
+                        throw new Error(deleteResult.error || 'Unknown error occurred');
+                    }
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    Swal.fire({
+                        title: 'Delete Failed',
+                        text: `Failed to delete user: ${error.message}`,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            }
+        }
+
+        async function toggleUserStatus(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (user) {
+                try {
+                    const newStatus = !user.is_active;
+                    await rbac.updateUser(userId, { is_active: newStatus });
+                    await loadUsers();
+                    await loadStats();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'User Updated!',
+                        text: `User has been ${newStatus ? 'activated' : 'deactivated'}.`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    console.error('Error updating user status:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Update Failed',
+                        text: 'Failed to update user status. Please try again.'
+                    });
+                }
+            }
+        }
+
+        // Assignee management handlers
+        async function showAddAssigneeModal(type) {
+            // Get all users
+            const { data: allUsers, error: usersError } = await supabaseClient
+                .from('user_profiles')
+                .select('user_id, full_name, email')
+                .eq('is_active', true)
+                .order('full_name');
+            
+            if (usersError) {
+                console.error('Error loading users:', usersError);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load users. Please try again.'
+                });
+                return;
+            }
+            
+            // Get users already assigned to this role
+            const roleName = type === 'supply' ? 'supply_in_progress' : 'ugrai_in_progress';
+            const assignedUsers = await rbac.getUsersByRole(roleName);
+            const assignedUserIds = new Set(assignedUsers.map(u => u.user_id));
+            
+            // Filter to only unassigned users
+            const availableUsers = allUsers.filter(u => !assignedUserIds.has(u.user_id));
+            
+            // Populate dropdown
+            const userSelect = document.getElementById('assignee-user');
+            userSelect.innerHTML = '<option value="">Select a user...</option>' +
+                availableUsers.map(u => 
+                    `<option value="${u.user_id}">${u.full_name} (${u.email})</option>`
+                ).join('');
+            
+            // Set type field
+            document.getElementById('assignee-type').value = type;
+            
+            // Update modal title
+            const modalTitle = document.querySelector('#add-assignee-modal h3');
+            modalTitle.textContent = type === 'supply' ? 'Add Supply Assignee' : 'Add UGRAI Assignee';
+            
+            showModal('add-assignee-modal');
+        }
+        
+        async function handleAddAssignee(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const userId = formData.get('user');
+            const type = formData.get('type');
+            
+            if (!userId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Select a User',
+                    text: 'Please select a user to assign.'
+                });
+                return;
+            }
+            
+            const roleName = type === 'supply' ? 'supply_in_progress' : 'ugrai_in_progress';
+            
+            try {
+                await rbac.assignRoleToUser(userId, roleName);
+                await loadAssignees();
+                hideModal('add-assignee-modal');
+                e.target.reset();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Assignee Added!',
+                    text: `User has been assigned to ${type === 'supply' ? 'Supply' : 'UGRAI'} successfully.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error adding assignee:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Assignment Failed',
+                    text: error.message || 'Failed to assign user. Please try again.'
+                });
+            }
+        }
+        
+        // Form handlers
+        async function handleAddUser(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const userData = {
+                full_name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                department: formData.get('department') || null,
+                is_active: true
+            };
+            
+            const roleName = formData.get('role');
+            
+            try {
+                await rbac.createUserWithRole(userData, roleName);
+                await loadUsers();
+                await loadStats();
+                hideModal('add-user-modal');
+                e.target.reset();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'User Created!',
+                    text: 'New user has been added successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error creating user:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Creation Failed',
+                    text: error.message || 'Failed to create user. Please try again.'
+                });
+            }
+        }
+
+        async function handleEditUser(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('edit-user-id').value;
+            const userData = {
+                full_name: document.getElementById('edit-user-name').value,
+                department: document.getElementById('edit-user-department').value || null,
+                is_active: document.getElementById('edit-user-active').checked
+            };
+            
+            const roleName = document.getElementById('edit-user-role').value;
+            
+            try {
+                await rbac.updateUser(userId, userData);
+                if (roleName) {
+                    await rbac.updateUserRole(userId, roleName);
+                }
+                
+                await loadUsers();
+                await loadStats();
+                hideModal('edit-user-modal');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'User Updated!',
+                    text: 'User information has been updated successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error updating user:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed',
+                    text: error.message || 'Failed to update user. Please try again.'
+                });
+            }
+        }
+
+        async function handleAddRole(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            // Get selected permissions
+            const selectedPermissions = [];
+            const permissionCheckboxes = e.target.querySelectorAll('input[name="permissions"]:checked');
+            permissionCheckboxes.forEach(checkbox => {
+                selectedPermissions.push(checkbox.value);
+            });
+            
+            const roleData = {
+                name: formData.get('name').toLowerCase().replace(/\s+/g, '_'),
+                display_name: formData.get('name'),
+                description: formData.get('description'),
+                permissions: selectedPermissions,
+                is_system_role: false
+            };
+            
+            try {
+                await rbac.createRole(roleData);
+                
+                await loadRoles();
+                await loadStats(); 
+                populateRoleSelects();
+                await renderPermissionsMatrix();
+                hideModal('add-role-modal');
+                e.target.reset();
+                clearAllPermissions();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Role Created!',
+                    text: 'New role has been added successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error creating role:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Creation Failed',
+                    text: error.message || 'Failed to create role. Please try again.'
+                });
+            }
+        }
+
+        // Permission selection helper functions
+        function selectAllPermissions() {
+            const checkboxes = document.querySelectorAll('#add-role-form input[name="permissions"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function clearAllPermissions() {
+            const checkboxes = document.querySelectorAll('#add-role-form input[name="permissions"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        function selectAdminPermissions() {
+            clearAllPermissions();
+            const adminCheckboxes = document.querySelectorAll('#add-role-form input[value^="admin."]');
+            adminCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function selectSupplyPermissions() {
+            clearAllPermissions();
+            const supplyCheckboxes = document.querySelectorAll('#add-role-form input[value^="supply."]');
+            supplyCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function selectUgraiPermissions() {
+            clearAllPermissions();
+            const ugraiCheckboxes = document.querySelectorAll('#add-role-form input[value^="ugrai."]');
+            ugraiCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function selectPurchasePermissions() {
+            clearAllPermissions();
+            const purchaseCheckboxes = document.querySelectorAll('#add-role-form input[value^="purchase."]');
+            purchaseCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function selectAnalysisPermissions() {
+            clearAllPermissions();
+            const analysisCheckboxes = document.querySelectorAll('#add-role-form input[value^="analysis."]');
+            analysisCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        // Render permissions matrix
+        async function renderPermissionsMatrix() {
+            console.log('🎨 Rendering permissions matrix...');
+            const permissionsMatrix = document.getElementById('permissions-matrix');
+            if (!permissionsMatrix) {
+                console.error('❌ Permissions matrix container not found!');
+                return;
+            }
+            
+            console.log('📊 allPermissions count:', allPermissions?.length || 0);
+            console.log('📊 allRoles count:', allRoles?.length || 0);
+            
+            if (!allRoles || allRoles.length === 0) {
+                console.warn('⚠️ No roles available for matrix');
+                permissionsMatrix.innerHTML = '<p class="text-muted">No roles found. Create some roles first to see the permission matrix.</p>';
+                return;
+            }
+            
+            try {
+                // Get permissions grouped by section
+                const permissionsBySection = {};
+                allPermissions.forEach(permission => {
+                    const section = permission.section_name || 'General';
+                    if (!permissionsBySection[section]) {
+                        permissionsBySection[section] = [];
+                    }
+                    permissionsBySection[section].push(permission);
+                });
+                
+                let matrixHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Permission
+                                    </th>
+                `;
+                
+                // Add column headers for each role
+                console.log('🏗️ Adding column headers for roles:', allRoles.map(r => r.name));
+                allRoles.forEach(role => {
+                    matrixHTML += `
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ${role.name.replace('_', ' ')}
+                        </th>
+                    `;
+                });
+                
+                matrixHTML += `
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                `;
+                
+                // Add rows for each permission
+                for (const [section, permissions] of Object.entries(permissionsBySection)) {
+                    // Section header
+                    matrixHTML += `
+                        <tr class="bg-blue-50">
+                            <td colspan="${allRoles.length + 1}" class="px-4 py-2 text-sm font-semibold text-blue-900">
+                                ${section}
+                            </td>
+                        </tr>
+                    `;
+                    
+                    // Permission rows
+                    for (const permission of permissions) {
+                        matrixHTML += `
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    <div class="font-medium">${permission.name}</div>
+                                    <div class="text-xs text-gray-500">${permission.description}</div>
+                                </td>
+                        `;
+                        
+                        // Checkbox for each role
+                        for (const role of allRoles) {
+                            const isChecked = await rbac.roleHasPermission(role.id, permission.id);
+                            matrixHTML += `
+                                <td class="px-4 py-3 text-center">
+                                    <input 
+                                        type="checkbox" 
+                                        ${isChecked ? 'checked' : ''}
+                                        onchange="toggleRolePermission(${role.id}, ${permission.id}, this.checked)"
+                                        class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                                    >
+                                </td>
+                            `;
+                        }
+                        
+                        matrixHTML += '</tr>';
+                    }
+                }
+                
+                matrixHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                console.log('✅ Setting matrix HTML (length:', matrixHTML.length, ')');
+                permissionsMatrix.innerHTML = matrixHTML;
+                console.log('✅ Matrix rendered successfully!');
+            } catch (error) {
+                console.error('Error rendering permissions matrix:', error);
+                permissionsMatrix.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-sm text-gray-500">Error loading permissions matrix</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Toggle role permission
+        async function toggleRolePermission(roleId, permissionId, granted) {
+            try {
+                if (granted) {
+                    await rbac.grantPermissionToRole(roleId, permissionId);
+                } else {
+                    await rbac.revokePermissionFromRole(roleId, permissionId);
+                }
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Permission Updated',
+                    text: `Permission ${granted ? 'granted' : 'revoked'} successfully.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error updating permission:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed',
+                    text: 'Failed to update permission. Please try again.'
+                });
+                
+                // Revert checkbox state
+                event.target.checked = !granted;
+            }
+        }
+
+        // Role actions
+        function editRole(roleId) {
+            const role = allRoles.find(r => r.id === roleId);
+            if (role) {
+                Swal.fire({
+                    title: 'Edit Role Permissions',
+                    text: `Use the permissions matrix below to manage permissions for the "${role.name}" role.`,
+                    icon: 'info',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Scroll to permissions matrix
+                    const permissionsSection = document.querySelector('[data-tab="permissions"]');
+                    if (permissionsSection) {
+                        permissionsSection.click();
+                        setTimeout(() => {
+                            document.getElementById('permissions-matrix').scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                    }
+                });
+            }
+        }
+
+        function deleteRole(roleId) {
+            const role = allRoles.find(r => r.id === roleId);
+            if (role && role.user_count === 0) {
+                Swal.fire({
+                    title: 'Delete Role?',
+                    text: `Are you sure you want to delete the "${role.name}" role?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            await rbac.deleteRole(roleId);
+                            await loadRoles();
+                            await loadStats();
+                            await renderPermissionsMatrix();
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'Role has been deleted.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } catch (error) {
+                            console.error('Error deleting role:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Delete Failed',
+                                text: 'Failed to delete role. Please try again.'
+                            });
+                        }
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Cannot Delete Role',
+                    text: 'This role cannot be deleted because it has users assigned to it.'
+                });
+            }
+        }
+
+        // Logout
+        async function logout() {
+            const result = await Swal.fire({
+                title: 'Logout?',
+                text: 'Are you sure you want to logout?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, logout'
+            });
+            
+            if (result.isConfirmed) {
+                await supabaseClient.auth.signOut();
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+
+</html>

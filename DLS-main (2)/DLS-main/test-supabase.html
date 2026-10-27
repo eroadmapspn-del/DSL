@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Supabase Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Supabase Connection Test</h1>
+    <p>This page will test your Supabase connection and database setup.</p>
+    
+    <div class="test-section">
+        <h3>Step 1: Connection Test</h3>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connection-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 2: Database Schema Test</h3>
+        <button onclick="testSchema()">Test Schema</button>
+        <div id="schema-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 3: CRUD Operations Test</h3>
+        <button onclick="testCRUD()">Test CRUD</button>
+        <div id="crud-status"></div>
+    </div>
+    <!-- Load Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script type="module">
+        // Import our service
+        import { initSupabase, SupabaseDataService } from './supabase-service.js';
+
+        let service;
+        
+        window.testConnection = async function() {
+            const statusDiv = document.getElementById('connection-status');
+            statusDiv.innerHTML = '<div class="info">Testing connection...</div>';
+            
+            try {
+                const success = await initSupabase();
+                if (success) {
+                    statusDiv.innerHTML = '<div class="success">✅ Connection successful!</div>';
+                    service = new SupabaseDataService();
+                } else {
+                    statusDiv.innerHTML = '<div class="error">❌ Connection failed. Check console for details.</div>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Connection error: ${error.message}</div>`;
+                console.error('Connection test error:', error);
+            }
+        };
+
+        window.testSchema = async function() {
+            const statusDiv = document.getElementById('schema-status');
+            if (!service) {
+                statusDiv.innerHTML = '<div class="error">❌ Please test connection first</div>';
+                return;
+            }
+
+            statusDiv.innerHTML = '<div class="info">Testing database schema...</div>';
+            
+            try {
+                // Test each table exists
+                const tables = ['retailers', 'bills', 'active_supplies', 'approved_bills', 'edited_bills'];
+                const results = [];
+                
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await supabase.from(table).select().limit(1);
+                        if (error && error.code === 'PGRST106') {
+                            results.push(`❌ Table '${table}' not found`);
+                        } else {
+                            results.push(`✅ Table '${table}' exists`);
+                        }
+                    } catch (e) {
+                        results.push(`❌ Table '${table}' error: ${e.message}`);
+                    }
+                }
+                
+                statusDiv.innerHTML = `<div class="success"><strong>Schema Test Results:</strong><br>${results.join('<br>')}</div>`;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Schema test error: ${error.message}</div>`;
+                console.error('Schema test error:', error);
+            }
+        };
+
+        window.testCRUD = async function() {
+            const statusDiv = document.getElementById('crud-status');
+            if (!service) {
+                statusDiv.innerHTML = '<div class="error">❌ Please test connection first</div>';
+                return;
+            }
+
+            statusDiv.innerHTML = '<div class="info">Testing CRUD operations...</div>';
+            
+            try {
+                const testRetailer = {
+                    retailer_name: 'Test Retailer ' + Date.now(),
+                    sector: 'Test Sector'
+                };
+
+                // Test Create
+                const created = await service.addRetailer(testRetailer.retailer_name, testRetailer.sector);
+                
+                // Test Read
+                const retailers = await service.getRetailers();
+                const found = retailers.find(r => r.retailer_name === testRetailer.retailer_name);
+                
+                let results = [];
+                results.push('✅ CREATE: Retailer added successfully');
+                results.push(found ? '✅ READ: Retailer found in database' : '❌ READ: Retailer not found');
+                
+                statusDiv.innerHTML = `<div class="success"><strong>CRUD Test Results:</strong><br>${results.join('<br>')}</div>`;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ CRUD test error: ${error.message}</div>`;
+                console.error('CRUD test error:', error);
+            }
+        };
+
+        // Auto-run connection test on page load
+        window.addEventListener('load', () => {
+            console.log('🧪 Supabase Test Page Loaded');
+            console.log('Your Supabase Project URL:', 'https://kvmoseafcfdbfdvbbwgr.supabase.co');
+        });
+    </script>
+</body>
+</html>
+
+        // Test connection
+        document.getElementById('test-connection').addEventListener('click', async () => {
+            if (!service) {
+                results.innerHTML += '<p>❌ Service not initialized</p>';
+                return;
+            }
+            
+            try {
+                const retailers = await service.getRetailers();
+                results.innerHTML += `<p>✅ Connection working! Found ${retailers.length} retailers.</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>❌ Connection failed: ${error.message}</p>`;
+            }
+        });
+
+        // Test add retailer
+        document.getElementById('test-add-retailer').addEventListener('click', async () => {
+            if (!service) {
+                results.innerHTML += '<p>❌ Service not initialized</p>';
+                return;
+            }
+            
+            try {
+                const testRetailer = await service.addRetailer('Test Store ' + Date.now(), 'Test Sector');
+                results.innerHTML += `<p>✅ Added retailer: ${testRetailer.retailer_name}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>❌ Failed to add retailer: ${error.message}</p>`;
+            }
+        });
+
+        // Test get retailers
+        document.getElementById('test-get-retailers').addEventListener('click', async () => {
+            if (!service) {
+                results.innerHTML += '<p>❌ Service not initialized</p>';
+                return;
+            }
+            
+            try {
+                const retailers = await service.getRetailers();
+                results.innerHTML += `<p>✅ Retrieved ${retailers.length} retailers:</p>`;
+                retailers.forEach(r => {
+                    results.innerHTML += `<p>- ${r.retailer_name} (${r.sector})</p>`;
+                });
+            } catch (error) {
+                results.innerHTML += `<p>❌ Failed to get retailers: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

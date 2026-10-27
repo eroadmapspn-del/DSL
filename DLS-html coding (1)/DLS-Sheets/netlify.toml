@@ -1,0 +1,20 @@
+# Netlify settings for the DLS Google-Sheets edition (static site, no build needed)
+[build]
+  publish = "."
+  # Optional: if you set the env var DLS_API_URL in Netlify, build.js writes it into config.js
+  command = "node build.js"
+
+[[redirects]]
+  from = "/"
+  to = "/login.html"
+  status = 302
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "no-cache"

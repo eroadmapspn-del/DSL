@@ -1,0 +1,203 @@
+<!-- ============================================================================ -->
+<!-- PENDING BILLS ANALYSIS SECTION -->
+<!-- Add this inside the analysis-dashboard-container in supply.html -->
+<!-- Right after the purchase-analysis section -->
+<!-- ============================================================================ -->
+
+<div id="pending-bills-section" class="w-full p-6 bg-white shadow-sm rounded-lg border border-gray-200"
+    data-tab-content="pending-bills" style="display: none;">
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <h3 class="text-xl font-bold text-gray-800">Pending Bills Dashboard</h3>
+        <p class="text-gray-600 text-sm mt-1">Track and analyze pending UGRAI bills from both data sources</p>
+    </div>
+
+    <!-- Refresh Button -->
+    <div class="flex justify-end mb-6">
+        <button id="refresh-pending-bills-btn" 
+            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+            <span>🔄</span>
+            <span>Refresh</span>
+        </button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="pending-bills-loading" class="hidden text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <p class="text-gray-600 mt-2">Loading pending bills data...</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div id="pending-bills-summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- Total Pending Bills -->
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-md p-5 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-semibold opacity-90">Total Pending Bills</h3>
+                <span class="text-2xl">📋</span>
+            </div>
+            <p id="total-pending-bills" class="text-3xl font-bold">0</p>
+            <p class="text-xs opacity-75 mt-1">Awaiting completion</p>
+        </div>
+
+        <!-- Total Pending Amount -->
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-md p-5 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-semibold opacity-90">Total Pending Amount</h3>
+                <span class="text-2xl">💰</span>
+            </div>
+            <p id="total-pending-amount" class="text-3xl font-bold">₹0</p>
+            <p class="text-xs opacity-75 mt-1">Outstanding value</p>
+        </div>
+
+        <!-- UGRAI Data Pending -->
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-5 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-semibold opacity-90">From Excel Uploads</h3>
+                <span class="text-2xl">📊</span>
+            </div>
+            <p id="ugrai-data-pending" class="text-3xl font-bold">0</p>
+            <p id="ugrai-data-amount" class="text-xs opacity-75 mt-1">₹0</p>
+        </div>
+
+        <!-- UGRAI Entries Pending -->
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-md p-5 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-semibold opacity-90">From Credit Bills</h3>
+                <span class="text-2xl">💳</span>
+            </div>
+            <p id="ugrai-entries-pending" class="text-3xl font-bold">0</p>
+            <p id="ugrai-entries-amount" class="text-xs opacity-75 mt-1">₹0</p>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Pending Bills by Sector -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="text-indigo-600">📊</span>
+                Pending Bills by Sector
+            </h4>
+            <div class="h-64">
+                <canvas id="pending-bills-sector-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Pending Bills by Person -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="text-indigo-600">👥</span>
+                Pending Bills by Assigned Person
+            </h4>
+            <div class="h-64">
+                <canvas id="pending-bills-person-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History Section -->
+    <div class="bg-gradient-to-r from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-200 mb-6">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="text-purple-600">💸</span>
+            Payment History Analysis
+        </h4>
+
+        <!-- Payment History Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Total Payments -->
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-purple-200">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-gray-700">Total Payments</h5>
+                    <span class="text-xl">📝</span>
+                </div>
+                <p id="total-payments-count" class="text-2xl font-bold text-purple-600">0</p>
+                <p class="text-xs text-gray-500 mt-1">All payment records</p>
+            </div>
+
+            <!-- Total Collected -->
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-purple-200">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-gray-700">Amount Collected</h5>
+                    <span class="text-xl">💵</span>
+                </div>
+                <p id="total-payments-collected" class="text-2xl font-bold text-green-600">₹0</p>
+                <p class="text-xs text-gray-500 mt-1">Total received</p>
+            </div>
+
+            <!-- Partial Payments -->
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-purple-200">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-gray-700">Partial Payments</h5>
+                    <span class="text-xl">📑</span>
+                </div>
+                <p id="partial-payments-count" class="text-2xl font-bold text-orange-600">0</p>
+                <p id="partial-payments-amount" class="text-xs text-gray-500 mt-1">₹0</p>
+            </div>
+
+            <!-- Full Payments -->
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-purple-200">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-gray-700">Full Payments</h5>
+                    <span class="text-xl">✅</span>
+                </div>
+                <p id="full-payments-count" class="text-2xl font-bold text-blue-600">0</p>
+                <p id="full-payments-amount" class="text-xs text-gray-500 mt-1">₹0</p>
+            </div>
+        </div>
+
+        <!-- Payment History Chart -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            <h5 class="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="text-purple-600">💳</span>
+                Payment History by Method
+            </h5>
+            <div class="h-64">
+                <canvas id="payment-history-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Tables -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Pending Bills by Sector Table -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Sector Breakdown</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sector</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Bills</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-bills-sector-table" class="bg-white divide-y divide-gray-200">
+                        <tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">No data available</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pending Bills by Person Table -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Assignment Breakdown</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Bills</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-bills-person-table" class="bg-white divide-y divide-gray-200">
+                        <tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">No data available</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- End of Pending Bills Section -->

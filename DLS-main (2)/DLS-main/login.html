@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Login - BeautyBasket by DLS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cache buster for Chromium -->
+    <script>window.__cache_version = '20251217_v2';</script>
+    <!-- Fallback Tailwind CSS CDN in case primary fails -->
+    <script>
+        // Check if Tailwind loaded, if not load fallback
+        if (typeof tailwind === 'undefined') {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+            document.head.appendChild(link);
+            console.log('Loaded Tailwind CSS fallback');
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <!-- Logo/Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-red-600 mb-2">BeautyBasket</h1>
+            <p class="text-gray-600 text-sm">by DLS</p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="space-y-6" novalidate>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    placeholder="Enter your email"
+                    autocomplete="email"
+                >
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div class="flex justify-end">
+                <div class="text-sm">
+                    <a href="#" id="forgot-password" class="font-medium text-red-600 hover:text-red-500 transition-colors">
+                        Forgot password?
+                    </a>
+                </div>
+            </div>
+
+            <button 
+                type="submit" 
+                id="login-btn"
+                class="w-full bg-red-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <span id="login-text">Sign In</span>
+                <span id="login-loading" class="hidden">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                </span>
+            </button>
+        </form>
+
+        <!-- Error Message -->
+        <div id="error-message" class="mt-4 text-red-600 text-sm text-center hidden">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                <span id="error-text"></span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-8 text-center text-xs text-gray-500">
+            <p>&copy; 2025 DLS. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Supabase Configuration -->
+    <script>
+        // TODO: Replace these with your actual Supabase credentials
+        window.__supabase_url = "https://kvmoseafcfdbfdvbbwgr.supabase.co";
+        window.__supabase_anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bW9zZWFmY2ZkYmZkdmJid2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxOTk5MjgsImV4cCI6MjA3Mzc3NTkyOH0._ORbzx_79fcvp4jlnT4UE0SN6Vk0tE4y88Oyi0KepHM";
+        window.__app_id = "beautybasket-dls";
+        
+        // Temporary fallback - remove after updating above
+        if (window.__supabase_url === "YOUR_SUPABASE_PROJECT_URL") {
+            console.error("⚠️  Please update Supabase configuration with your actual keys!");
+            alert("Supabase configuration needed. Please check the console for instructions.");
+        }
+    </script>
+
+    <!-- JavaScript -->
+    <script>
+        // Use unique variable name to prevent cache conflicts
+        const loginSupabaseClient = window.supabase.createClient(
+            window.__supabase_url, 
+            window.__supabase_anon_key,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage,
+                    flowType: 'pkce'
+                }
+            }
+        );
+
+        // DOM Elements
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const loginText = document.getElementById('login-text');
+        const loginLoading = document.getElementById('login-loading');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        // Show/Hide loading state
+        function setLoading(loading) {
+            if (loading) {
+                loginBtn.disabled = true;
+                loginText.classList.add('hidden');
+                loginLoading.classList.remove('hidden');
+            } else {
+                loginBtn.disabled = false;
+                loginText.classList.remove('hidden');
+                loginLoading.classList.add('hidden');
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Hide error message
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', async () => {
+                console.log('Login page loaded');
+                console.log('Supabase config:', {
+                    url: window.__supabase_url,
+                    key: window.__supabase_anon_key ? 'Set' : 'Missing'
+                });
+                
+                // Check if user just logged out
+                const logoutFlag = localStorage.getItem('logout_flag');
+                if (logoutFlag === 'true') {
+                    console.log('User just logged out, clearing flag and staying on login page...');
+                    localStorage.removeItem('logout_flag');
+                    return; // Don't check session if user just logged out
+                }
+                
+                // Only check existing session if Supabase is configured
+                if (window.__supabase_url && window.__supabase_anon_key && 
+                    window.__supabase_url !== "YOUR_SUPABASE_PROJECT_URL") {
+                    try {
+                        const { data: { session }, error } = await loginSupabaseClient.auth.getSession();
+                    console.log('Session check result:', { 
+                        hasSession: !!session, 
+                        hasUser: !!session?.user,
+                        error: error 
+                    });
+                    
+                    if (session && session.user && !error) {
+                        console.log('Valid session found, redirecting to main app...');
+                        window.location.replace('supply.html');
+                    } else {
+                        console.log('No valid session, staying on login page');
+                    }
+                } catch (error) {
+                    console.error('Error checking session:', error);
+                        console.log('Session check failed, staying on login page');
+                    }
+                } else {
+                    console.log('Supabase not configured, staying on login page');
+                }
+            });
+
+            // Handle form submission
+            loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+            setLoading(true);
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            try {
+                const { data, error } = await loginSupabaseClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data.user) {
+                    // Success - redirect directly (Chromium fix: no SweetAlert-controlled navigation)
+                    window.location.assign('supply.html');
+                } else {
+                    throw new Error('No user returned from login');
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message || 'An error occurred during login');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+            // Handle forgot password
+            document.getElementById('forgot-password').addEventListener('click', async (e) => {
+                e.preventDefault();
+                
+                const { value: email } = await Swal.fire({
+                    title: 'Reset Password',
+                    input: 'email',
+                    inputLabel: 'Enter your email address',
+                    inputPlaceholder: 'your-email@example.com',
+                    showCancelButton: true,
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'You need to enter an email address!'
+                        }
+                    }
+                });
+
+                if (email) {
+                    try {
+                        const { error } = await loginSupabaseClient.auth.resetPasswordForEmail(email, {
+                            redirectTo: window.location.origin + '/reset-password.html'
+                        });
+
+                        if (error) throw error;
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Password Reset Email Sent!',
+                            text: 'Check your email for reset instructions.'
+                        });
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message
+                        });
+                    }
+                }
+            });
+
+            // Handle Enter key for form submission
+            document.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !loginBtn.disabled) {
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            });
+    </script>
+</body>
+
+</html>

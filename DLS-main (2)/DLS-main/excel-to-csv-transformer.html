@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to CSV Transformer for approved_bills</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .preview {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .mapping-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+        
+        .mapping-info h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .mapping-info ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        </style>
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel to CSV Transformer</h1>
+        <p class="subtitle">Transform Excel bills to CSV format for approved_bills table import</p>
+        
+        <div class="mapping-info">
+            <h3>🔄 Processing Rules:</h3>
+            <ul>
+                <li><strong>All bills</strong> → Transformed to CSV for <code>approved_bills</code> table import</li>
+                <li><strong>Status = "Edited"</strong> → Included with status "edited" (preserves original payment data)</li>
+                <li><strong>Status = "Delivered"</strong> → Transformed with status "approved"</li>
+                <li><strong>Status = "Cancelled/Returned"</strong> → Transformed with status preserved</li>
+            </ul>
+            <h3 style="margin-top: 15px;">📋 Column Mappings:</h3>
+            <ul>
+                <li><strong>Delivery Method</strong> → payment_method (Cash/Cheque/UPI/Credit/NEFT)</li>
+                <li><strong>Received Amount</strong> → Sum of Cash Received + Cheque Amount + UPI Amount</li>
+                <li><strong>Receipt Number:</strong>
+                    <ul style="margin-top: 5px;">
+                        <li>Cash → Cash Receipt Number</li>
+                        <li>Cheque → Cheque Number</li>
+                        <li>UPI → UPI Receipt Number</li>
+                    </ul>
+                </li>
+                <li><strong>Sector</strong> → Sector column from Excel</li>
+                <li><strong>Timestamp</strong> → created_at</li>
+            </ul>
+            <p style="margin-top: 10px; font-size: 12px; color: #856404;">
+                <strong>📥 Output:</strong> Download CSV file and import to Supabase → approved_bills table.
+            </p>
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
+                <strong>Click to upload</strong> or drag and drop
+            </p>
+            <p style="font-size: 14px; color: #666;">
+                Excel file (.xlsx, .xls)
+            </p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">
+                Choose File
+            </button>
+        </div>
+        
+        <div id="statusArea"></div>
+        <div id="statsArea"></div>
+        <div id="previewArea"></div>
+        <div id="downloadArea"></div>
+    </div>
+
+    <script>
+        // User ID for CSV data
+        const USER_ID = 'default-user'; // Replace with actual user ID if needed
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const statusArea = document.getElementById('statusArea');
+        const statsArea = document.getElementById('statsArea');
+        const previewArea = document.getElementById('previewArea');
+        const downloadArea = document.getElementById('downloadArea');
+        
+        let transformedData = null;
+        
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function showStatus(message, type = 'info') {
+            statusArea.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function showStats(stats) {
+            statsArea.innerHTML = `
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.total}</div>
+                        <div class="stat-label">Total Records</div>
+                    </div>
+                    <div class="stat-card" style="background: #fff3cd;">
+                        <div class="stat-number" style="color: #856404;">${stats.edited}</div>
+                        <div class="stat-label">Edited Bills</div>
+                    </div>
+                    <div class="stat-card" style="background: #d4edda;">
+                        <div class="stat-number" style="color: #155724;">${stats.csv}</div>
+                        <div class="stat-label">Other Bills</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.cash}</div>
+                        <div class="stat-label">Cash</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.cheque}</div>
+                        <div class="stat-label">Cheque</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.upi}</div>
+                        <div class="stat-label">UPI</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.credit}</div>
+                        <div class="stat-label">Credit</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.neft}</div>
+                        <div class="stat-label">NEFT</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                showStatus('❌ Please upload an Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+            
+            showStatus('📖 Reading Excel file...', 'info');
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
+                    
+                    transformData(rows);
+                } catch (error) {
+                    showStatus('❌ Error reading Excel file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function transformData(rows) {
+            if (rows.length < 2) {
+                showStatus('❌ Excel file is empty or has no data rows', 'error');
+                return;
+            }
+            
+            showStatus('⚙️ Transforming data...', 'info');
+            
+            const headers = rows[0];
+            console.log('Excel headers:', headers);
+            
+            // Find column indices by matching header names
+            const getColumnIndex = (searchTerms) => {
+                for (let i = 0; i < headers.length; i++) {
+                    const header = headers[i].toString().toLowerCase().trim();
+                    for (let term of searchTerms) {
+                        if (header.includes(term.toLowerCase())) {
+                            return i;
+                        }
+                    }
+                }
+                return -1;
+            };
+            
+            const colIndices = {
+                timestamp: getColumnIndex(['timestamp']),
+                billNumber: getColumnIndex(['bill number']),
+                billDate: getColumnIndex(['bill date']),
+                retailerName: getColumnIndex(['retailer name']),
+                netAmount: getColumnIndex(['net amount']),
+                status: getColumnIndex(['status']),
+                paymentReceived: getColumnIndex(['payment received']),
+                paymentMethod: getColumnIndex(['delivery method', 'payment method']),
+                cashReceived: getColumnIndex(['cash received']),
+                cashReceiptNumber: getColumnIndex(['cash receipt number']),
+                cashReceiptPhoto: getColumnIndex(['cash receipt photo']),
+                bankName: getColumnIndex(['bank name']),
+                chequeNumber: getColumnIndex(['cheque number']),
+                chequeDate: getColumnIndex(['cheque date']),
+                chequeAmount: getColumnIndex(['cheque amount']),
+                chequePhoto: getColumnIndex(['cheque photo']),
+                upiAmount: getColumnIndex(['upi amount']),
+                upiPhoto: getColumnIndex(['upi receipt photo', 'upi payment photo', 'upi screenshot']),
+                neftAmount: getColumnIndex(['neft amount']),
+                sector: getColumnIndex(['sector']),
+                name: getColumnIndex(['name']),
+                email: getColumnIndex(['email'])
+            };
+            
+            console.log('Column indices:', colIndices);
+            
+            const transformed = [];
+            const editedBills = [];
+            const stats = { total: 0, csv: 0, edited: 0, cash: 0, cheque: 0, upi: 0, credit: 0, neft: 0 };
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                
+                // Skip empty rows or rows where all cells are empty
+                if (!row || row.length === 0) continue;
+                if (!row[colIndices.billNumber] || row[colIndices.billNumber].toString().trim() === '') continue;
+                
+                // Extract bill number
+                const billNumber = row[colIndices.billNumber].toString().trim();
+                
+                // Skip if bill number is clearly a header or invalid
+                if (billNumber.toLowerCase().includes('bill number') || billNumber === '') continue;
+                
+                // Get payment method from Excel (Delivery Method column)
+                const paymentMethodRaw = (row[colIndices.paymentMethod] || '').toString().toLowerCase().trim();
+                
+                // Get status from Excel
+                const statusRaw = (row[colIndices.status] || '').toString().trim();
+                
+                // Parse all payment amounts
+                const cashAmount = parseFloat(row[colIndices.cashReceived] || 0);
+                const chequeAmount = parseFloat(row[colIndices.chequeAmount] || 0);
+                const upiAmount = parseFloat(row[colIndices.upiAmount] || 0);
+                
+                // Sum all payment amounts
+                const receivedAmount = cashAmount + chequeAmount + upiAmount;
+                
+                // Determine payment method from Delivery Method column
+                let paymentMethod = 'Cash';  // Default
+                if (paymentMethodRaw.includes('cash')) {
+                    paymentMethod = 'Cash';
+                    stats.cash++;
+                } else if (paymentMethodRaw.includes('cheque')) {
+                    paymentMethod = 'Cheque';
+                    stats.cheque++;
+                } else if (paymentMethodRaw.includes('upi')) {
+                    paymentMethod = 'UPI';
+                    stats.upi++;
+                } else if (paymentMethodRaw.includes('credit')) {
+                    paymentMethod = 'Credit';
+                    stats.credit++;
+                } else if (paymentMethodRaw.includes('neft')) {
+                    paymentMethod = 'NEFT';
+                    stats.neft++;
+                } else {
+                    // Default to Cash if no match
+                    paymentMethod = 'Cash';
+                    stats.cash++;
+                }
+                
+                // Determine receipt number and photo based on payment method
+                let receiptNumber = '';
+                let photoUrl = '';
+                if (paymentMethod === 'Cash') {
+                    receiptNumber = row[colIndices.cashReceiptNumber] || '';
+                    photoUrl = row[colIndices.cashReceiptPhoto] || '';
+                } else if (paymentMethod === 'Cheque') {
+                    receiptNumber = row[colIndices.chequeNumber] || '';
+                    photoUrl = row[colIndices.chequePhoto] || '';
+                } else if (paymentMethod === 'UPI') {
+                    receiptNumber = '';
+                    photoUrl = row[colIndices.upiPhoto] || '';
+                }
+                
+                // Map status: "Delivered" → "approved", others → lowercase
+                let status = 'approved';
+                if (statusRaw.toLowerCase() === 'delivered') {
+                    status = 'approved';
+                } else if (statusRaw) {
+                    status = statusRaw.toLowerCase(); // cancelled, returned, edited
+                }
+                
+                // Debug log for first valid row
+                if (transformed.length === 0) {
+                    console.log('First valid row (row index ' + i + '):', {
+                        billNumber: billNumber,
+                        statusRaw: statusRaw,
+                        statusMapped: status,
+                        paymentMethodRaw: paymentMethodRaw,
+                        paymentMethod: paymentMethod,
+                        cash: cashAmount,
+                        cheque: chequeAmount,
+                        upi: upiAmount,
+                        receivedAmount: receivedAmount
+                    });
+                }
+                
+                // Format dates to YYYY-MM-DD HH:mm:ss
+                const formatDate = (dateStr, includeTime = false) => {
+                    if (!dateStr) return '';
+                    try {
+                        console.log('Formatting date:', dateStr, 'Type:', typeof dateStr);
+                        
+                        // Handle Excel date serial numbers
+                        if (typeof dateStr === 'number') {
+                            const date = XLSX.SSF.parse_date_code(dateStr);
+                            const year = date.y;
+                            const month = String(date.m).padStart(2, '0');
+                            const day = String(date.d).padStart(2, '0');
+                            const hours = String(date.H || 0).padStart(2, '0');
+                            const minutes = String(date.M || 0).padStart(2, '0');
+                            const seconds = String(date.S || 0).padStart(2, '0');
+                            
+                            const result = includeTime 
+                                ? `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+                                : `${year}-${month}-${day} 00:00:00`;
+                            console.log('  → Serial number result:', result);
+                            return result;
+                        }
+                        
+                        // Handle string dates in MM/DD/YYYY format (American format)
+                        if (typeof dateStr === 'string' && dateStr.includes('/')) {
+                            const [datePart, ...timeParts] = dateStr.trim().split(/\s+/);
+                            const parts = datePart.split('/');
+                            
+                            if (parts.length === 3) {
+                                let month = parts[0].padStart(2, '0');  // First part is MONTH
+                                let day = parts[1].padStart(2, '0');    // Second part is DAY
+                                let year = parts[2];                     // Third part is YEAR
+                                
+                                // Handle 2-digit year (assume 20xx)
+                                if (year.length === 2) {
+                                    year = '20' + year;
+                                }
+                                
+                                // Extract time if present
+                                let time = '00:00:00';
+                                if (timeParts.length > 0) {
+                                    time = timeParts.join(' ');
+                                }
+                                
+                                const result = `${year}-${month}-${day} ${time}`;
+                                console.log('  → Slash format result (MM/DD/YY):', result);
+                                return result;
+                            }
+                        }
+                        
+                        // Handle YY-DD-MM format with dashes (your Excel format)
+                        if (typeof dateStr === 'string' && dateStr.includes('-')) {
+                            const parts = dateStr.trim().split('-');
+                            if (parts.length === 3) {
+                                let part1 = parts[0];
+                                let part2 = parts[1];
+                                let part3 = parts[2];
+                                
+                                console.log('  → Dash parts:', part1, part2, part3);
+                                
+                                // Detect YY-DD-MM format (first part is 2 digits, second part > 12)
+                                if (part1.length === 2 && parseInt(part2) > 12) {
+                                    // YY-DD-MM → YYYY-MM-DD
+                                    let year = '20' + part1;
+                                    let day = part2;
+                                    let month = part3;
+                                    const result = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} 00:00:00`;
+                                    console.log('  → YY-DD-MM result:', result);
+                                    return result;
+                                }
+                                // Detect YY-MM-DD format (first part is 2 digits, second part <= 12, third part > 12)
+                                else if (part1.length === 2 && parseInt(part2) <= 12 && parseInt(part3) > 12) {
+                                    // YY-MM-DD → YYYY-MM-DD
+                                    let year = '20' + part1;
+                                    let month = part2;
+                                    let day = part3;
+                                    const result = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} 00:00:00`;
+                                    console.log('  → YY-MM-DD result:', result);
+                                    return result;
+                                }
+                                // Already YYYY-MM-DD
+                                else if (part1.length === 4 && parseInt(part2) <= 12 && parseInt(part3) <= 31) {
+                                    const result = `${part1}-${part2.padStart(2, '0')}-${part3.padStart(2, '0')} 00:00:00`;
+                                    console.log('  → YYYY-MM-DD result:', result);
+                                    return result;
+                                }
+                            }
+                        }
+                        
+                        // Try parsing as standard date
+                        const date = new Date(dateStr);
+                        if (!isNaN(date.getTime())) {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const seconds = String(date.getSeconds()).padStart(2, '0');
+                            
+                            const result = includeTime
+                                ? `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+                                : `${year}-${month}-${day} 00:00:00`;
+                            console.log('  → Standard date result:', result);
+                            return result;
+                        }
+                        
+                        console.warn('  → Could not parse date:', dateStr);
+                        return '';
+                    } catch (e) {
+                        console.error('Date parsing error for:', dateStr, e);
+                        return '';
+                    }
+                };
+                
+                const billDate = formatDate(row[colIndices.billDate]);
+                const chequeDate = paymentMethod === 'Cheque' ? formatDate(row[colIndices.chequeDate]) : '';
+                const createdAt = formatDate(row[colIndices.timestamp], true) || new Date().toISOString().replace('T', ' ').split('.')[0];
+                
+                // Extract brand from bill number (e.g., LCBL, NIV)
+                let brand = 'Unknown';
+                if (billNumber.includes('LCBL') || billNumber.toLowerCase().includes('loreal') || billNumber.includes('L')) {
+                    brand = 'Loreal';
+                } else if (billNumber.includes('NIV') || billNumber.toLowerCase().includes('nivea')) {
+                    brand = 'Nivea';
+                }
+                
+                // Get sector from Excel
+                const sector = row[colIndices.sector] || '';
+                
+                const transformedRow = {
+                    bill_number: billNumber,
+                    bill_date: billDate,
+                    retailer_name: row[colIndices.retailerName] || '',
+                    sector: sector,
+                    net_amount: parseFloat(row[colIndices.netAmount] || 0).toFixed(2),
+                    received_amount: receivedAmount.toFixed(2),
+                    brand: brand,
+                    supply_through: 'Test Import',
+                    payment_method: paymentMethod,
+                    receipt_number: receiptNumber,
+                    cheque_date: chequeDate,
+                    photo_url: photoUrl,
+                    status: status,
+                    created_at: createdAt,
+                    user_id: USER_ID
+                };
+                
+                // All bills go to approved_bills table, including edited ones
+                // For edited bills, we preserve the original Excel data (not hardcoded Credit/0)
+                transformed.push(transformedRow);
+                stats.csv++;
+                
+                // Track edited bills separately for statistics
+                if (statusRaw.toLowerCase() === 'edited') {
+                    stats.edited++;
+                }
+                
+                // Debug log for first valid row
+                if (stats.total === 0) {
+                    console.log('First valid row (status: ' + statusRaw + '):', transformedRow);
+                }
+                
+                stats.total++;
+            }
+            
+            if (stats.total === 0) {
+                showStatus('❌ No valid data rows found', 'error');
+                return;
+            }
+            
+            // Store transformed data (includes all bills: edited and non-edited)
+            transformedData = transformed;
+            
+            // No automatic database insertion - user will import CSV manually
+            finishTransformation(transformed, stats);
+        }
+        
+        function finishTransformation(transformed, stats) {
+            let message = `✅ Successfully processed ${stats.total} records! Download CSV to import to approved_bills table`;
+            if (stats.edited > 0) {
+                message += ` (including ${stats.edited} edited bills with original payment data)`;
+            }
+            
+            showStatus(message, 'success');
+            showStats(stats);
+            showPreview(transformed);
+            showDownloadButton();
+        }
+        
+
+        function showPreview(data) {
+            const previewRows = data.slice(0, 10);
+            const columns = Object.keys(previewRows[0]);
+            
+            let html = '<div class="preview"><table>';
+            html += '<thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            previewRows.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    html += `<td>${row[col]}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            html += `<p style="text-align: center; color: #666; margin-top: 10px; font-size: 12px;">
+                Showing first 10 of ${data.length} records
+            </p>`;
+            
+            previewArea.innerHTML = html;
+        }
+        
+        function showDownloadButton() {
+            const csvCount = transformedData ? transformedData.length : 0;
+            
+            let buttonsHTML = '';
+            
+            if (csvCount > 0) {
+                buttonsHTML += `
+                    <button class="btn" onclick="downloadCSV()" style="display: block; margin: 20px auto; font-size: 16px; padding: 15px 30px;">
+                        ⬇️ Download CSV (${csvCount} records)
+                    </button>
+                    <p style="text-align: center; color: #666; font-size: 13px; margin-bottom: 20px;">
+                        Import this CSV into Supabase → approved_bills table<br>
+                        <small>Includes all bills (edited + delivered + others) with complete payment data</small>
+                    </p>
+                `;
+            }
+            
+            downloadArea.innerHTML = buttonsHTML;
+        }
+        
+        function downloadCSV() {
+            if (!transformedData || transformedData.length === 0) {
+                alert('No data to download');
+                return;
+            }
+            
+            // Create CSV with proper column order for Supabase
+            const columns = [
+                'bill_number', 'bill_date', 'retailer_name', 'sector', 'net_amount',
+                'received_amount', 'brand', 'supply_through', 'payment_method',
+                'receipt_number', 'cheque_date', 'photo_url', 'status', 'created_at', 'user_id'
+            ];
+            
+            let csv = columns.join(',') + '\n';
+            
+            transformedData.forEach(row => {
+                const values = columns.map(col => {
+                    let value = row[col] || '';
+                    // Escape commas and quotes
+                    if (value.toString().includes(',') || value.toString().includes('"')) {
+                        value = `"${value.toString().replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                });
+                csv += values.join(',') + '\n';
+            });
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `approved_bills_import_${Date.now()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showStatus('✅ CSV downloaded! You can now import it to Supabase.', 'success');
+        }
+        
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Status Checker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 5px solid;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Database Status Checker</h1>
+    <p>This page will help diagnose why the purchase section data isn't saving to Supabase.</p>
+    
+    <button onclick="checkDatabaseStatus()">Check Database Status</button>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="showTableInfo()">Show Table Info</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        const SUPABASE_CONFIG = {
+            url: 'https://kvmoseafcfdbfdvbbwgr.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bW9zZWFmY2ZkYmZkdmJid2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxOTk5MjgsImV4cCI6MjA3Mzc3NTkyOH0._ORbzx_79fcvp4jlnT4UE0SN6Vk0tE4y88Oyi0KepHM'
+        };
+        
+        const supabase = window.supabase.createClient(
+            SUPABASE_CONFIG.url, 
+            SUPABASE_CONFIG.anonKey,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage,
+                    flowType: 'pkce'
+                }
+            }
+        );
+        
+        function addResult(type, title, content) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${title}</strong><br>${content}`;
+            results.appendChild(div);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function checkDatabaseStatus() {
+            clearResults();
+            addResult('warning', 'Checking Database Status...', 'Please wait...');
+            
+            try {
+                // Test basic connection
+                const { data: healthCheck, error: healthError } = await supabase
+                    .from('purchase_retailers')
+                    .select('count')
+                    .limit(1);
+                
+                if (healthError) {
+                    if (healthError.code === '42P01') {
+                        addResult('error', 'Table Missing', `
+                            The 'purchase_retailers' table does not exist in your database.<br>
+                            <strong>Solution:</strong><br>
+                            1. Open your Supabase Dashboard<br>
+                            2. Go to SQL Editor<br>
+                            3. Copy and run the SQL from purchase-tables-schema.sql<br>
+                            Error Details: ${healthError.message}
+                        `);
+                        return;
+                    } else if (healthError.code === 'PGRST301') {
+                        addResult('warning', 'Permission Issue', `
+                            Row Level Security is blocking access. This might be normal if user authentication is required.<br>
+                            Error: ${healthError.message}
+                        `);
+                    } else {
+                        addResult('error', 'Database Error', `
+                            Unexpected database error: ${healthError.message}<br>
+                            Code: ${healthError.code}
+                        `);
+                        return;
+                    }
+                } else {
+                    addResult('success', 'Connection Successful', 'Successfully connected to purchase_retailers table');
+                }
+                
+                // Test purchase_entries table
+                const { data: entriesCheck, error: entriesError } = await supabase
+                    .from('purchase_entries')
+                    .select('count')
+                    .limit(1);
+                
+                if (entriesError) {
+                    if (entriesError.code === '42P01') {
+                        addResult('error', 'Purchase Entries Table Missing', `
+                            The 'purchase_entries' table does not exist in your database.<br>
+                            Please run the complete schema from purchase-tables-schema.sql
+                        `);
+                        return;
+                    }
+                } else {
+                    addResult('success', 'Purchase Entries OK', 'purchase_entries table is accessible');
+                }
+                
+            } catch (error) {
+                addResult('error', 'Connection Failed', `Failed to connect to Supabase: ${error.message}`);
+            }
+        }
+        
+        async function testConnection() {
+            clearResults();
+            addResult('warning', 'Testing Connection...', 'Please wait...');
+            
+            try {
+                // Test with a simple query
+                const { data, error } = await supabase
+                    .from('purchase_retailers')
+                    .select('*')
+                    .limit(5);
+                
+                if (error) {
+                    addResult('error', 'Query Failed', `
+                        Error: ${error.message}<br>
+                        Code: ${error.code}<br>
+                        Details: ${error.details || 'No additional details'}
+                    `);
+                } else {
+                    addResult('success', 'Query Successful', `
+                        Successfully retrieved data. Found ${data.length} retailers.<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `);
+                }
+            } catch (error) {
+                addResult('error', 'Test Failed', error.message);
+            }
+        }
+        
+        async function showTableInfo() {
+            clearResults();
+            addResult('warning', 'Fetching Table Information...', 'Please wait...');
+            
+            try {
+                // Try to get table structure info
+                const { data, error } = await supabase.rpc('get_table_info', { table_name: 'purchase_retailers' });
+                
+                if (error) {
+                    addResult('warning', 'Table Info Not Available', `
+                        Could not fetch table structure info. This is normal if the RPC function isn't available.<br>
+                        Error: ${error.message}
+                    `);
+                } else {
+                    addResult('success', 'Table Structure', `
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `);
+                }
+                
+                // Show configuration being used
+                addResult('success', 'Configuration', `
+                    <strong>Supabase URL:</strong> ${SUPABASE_CONFIG.url}<br>
+                    <strong>Using Anonymous Key:</strong> Yes (length: ${SUPABASE_CONFIG.anonKey.length} characters)
+                `);
+                
+            } catch (error) {
+                addResult('error', 'Info Fetch Failed', error.message);
+            }
+        }
+    </script>
+</body>
+</html>

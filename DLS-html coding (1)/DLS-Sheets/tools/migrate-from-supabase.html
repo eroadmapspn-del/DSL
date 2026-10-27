@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DLS – Copy data from Supabase to Google Sheets</title>
+<style>
+ body{font:15px/1.5 system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#1f2937}
+ label{display:block;margin:10px 0 2px;font-weight:600} input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box}
+ button{margin-top:16px;padding:10px 18px;background:#111;color:#fff;border:0;border-radius:6px;cursor:pointer} button:disabled{opacity:.5}
+ pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;max-height:360px;overflow:auto;white-space:pre-wrap}
+ .note{background:#fff7ed;border:1px solid #fed7aa;padding:10px 12px;border-radius:8px}
+</style></head><body>
+<h2>Copy existing data from Supabase into the Google Sheet</h2>
+<p class="note">Run this <b>once</b>, from the deployed Netlify site (or any page that loads <code>config.js</code> + <code>sheets-client.js</code>). It only <b>reads</b> from Supabase and <b>adds</b> rows to the sheet – nothing in Supabase is changed. Rows keep their original <code>id</code> and <code>user_id</code>, so first make sure each person's row in the <b>Credentials</b> sheet has the same <code>id</code> as their old Supabase user id (see README, “Migrating old data”).</p>
+<h3>1. Old Supabase project (read only)</h3>
+<label>Project URL</label><input id="sbUrl" placeholder="https://xxxx.supabase.co">
+<label>Anon key</label><input id="sbKey">
+<label>An admin's email in Supabase</label><input id="sbEmail">
+<label>Password</label><input id="sbPass" type="password">
+<h3>2. New Google-Sheets backend (admin login)</h3>
+<label>Admin email</label><input id="gEmail"><label>Password</label><input id="gPass" type="password">
+<button id="go">Start copying</button>
+<pre id="log">Waiting…</pre>
+<script src="../config.js"></script><script src="../sheets-client.js"></script>
+<script>
+const TABLES = ['retailers','bills','active_supplies','approved_bills','edited_bills','ugrai_data','ugrai_entries','ugrai_assignments','ugrai_in_progress','ugrai_completed','completed_ugrai','approved_ugrai','ugrai_payment_history','purchase_retailers','purchase_entries','bill_photos','cash_receipts','audit_logs'];
+const $ = id => document.getElementById(id), log = m => { $('log').textContent += '\n' + m; $('log').scrollTop = 1e9; };
+async function sb(path, token, key, base, extra) {
+  const r = await fetch(base + path, { headers: Object.assign({ apikey: key, Authorization: 'Bearer ' + token }, extra || {}) });
+  if (!r.ok) throw new Error(r.status + ' ' + (await r.text()).slice(0, 200));
+  return r;
+}
+$('go').onclick = async () => {
+  $('go').disabled = true; $('log').textContent = 'Starting…';
+  try {
+    const base = $('sbUrl').value.trim().replace(/\/$/, ''), key = $('sbKey').value.trim();
+    const lr = await fetch(base + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('sbEmail').value, password: $('sbPass').value }) });
+    const lj = await lr.json(); if (!lj.access_token) throw new Error('Supabase login failed: ' + (lj.msg || lj.error_description || JSON.stringify(lj)));
+    log('Supabase login OK');
+    const client = window.supabase.createClient('x', 'y');
+    const { error: ge } = await client.auth.signInWithPassword({ email: $('gEmail').value, password: $('gPass').value });
+    if (ge) throw new Error('Sheets login failed: ' + ge.message);
+    log('Google Sheets login OK');
+    for (const t of TABLES) {
+      let from = 0, all = [];
+      for (;;) {
+        let r;
+        try { r = await sb('/rest/v1/' + t + '?select=*&order=created_at.asc', lj.access_token, key, base, { Range: from + '-' + (from + 999), 'Range-Unit': 'items' }); }
+        catch (e) { log('  ' + t + ': skipped (' + e.message.slice(0, 80) + ')'); all = null; break; }
+        const rows = await r.json(); all = all.concat(rows);
+        if (rows.length < 1000) break; from += 1000;
+      }
+      if (all === null) continue;
+      if (!all.length) { log(t + ': 0 rows'); continue; }
+      const existing = await client.from(t).select('id', { count: 'exact', head: true });
+      if (existing.count) { log(t + ': sheet already has ' + existing.count + ' rows – skipped to avoid duplicates'); continue; }
+      let done = 0;
+      for (let i = 0; i < all.length; i += 400) {
+        const { error } = await client.from(t).insert(all.slice(i, i + 400));
+        if (error) { log('  ' + t + ': ERROR ' + error.message); break; }
+        done += Math.min(400, all.length - i);
+      }
+      log(t + ': copied ' + done + ' / ' + all.length);
+    }
+    log('\nDone. Photos are not copied – old photo URLs keep pointing to Supabase storage and stay visible as long as that project exists.');
+  } catch (e) { log('FAILED: ' + e.message); }
+  $('go').disabled = false;
+};
+</script></body></html>

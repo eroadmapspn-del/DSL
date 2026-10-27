@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Upload Test File Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #b91c1c;
+        }
+        .sample-data {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .instructions {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Purchase Upload Test File Generator</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click "Generate Test CSV File" to download a test file</li>
+                <li>Open the downloaded CSV file in Excel</li>
+                <li>Save it as an Excel file (.xlsx format)</li>
+                <li>Use the Excel file to test the Purchase Section file upload in the main application</li>
+                <li>Navigate to: PURCHASE → Purchase Base File → Click Upload button</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h3>Generate Test Data</h3>
+            <p>This will create a CSV file with the correct format for testing:</p>
+            <div class="sample-data">
+Retailer Name,Due Days<br>
+ABC Store,30<br>
+XYZ Mart,45<br>
+Global Retail,60<br>
+City Center,15<br>
+Premium Shop,90
+            </div>
+            <button onclick="generateTestFile()">Generate Test CSV File</button>
+        </div>
+
+        <div class="section">
+            <h3>File Format Requirements</h3>
+            <p><strong>Column Headers (Case-insensitive):</strong></p>
+            <ul>
+                <li><strong>Retailer Name</strong> - Name of the retailer</li>
+                <li><strong>Due Days</strong> - Number of days (integer)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>Testing Steps</h3>
+            <p><strong>To test the file upload:</strong></p>
+            <ol>
+                <li>Generate and download the test CSV file above</li>
+                <li>Open it in Excel and save as .xlsx format</li>
+                <li>Go to the main application (supply.html)</li>
+                <li>Click on "PURCHASE" tab at the top</li>
+                <li>Click on "Purchase Base File" in the sub-navigation</li>
+                <li>Click the "Upload" button and select your Excel file</li>
+                <li>You should see a success toast message</li>
+                <li>Click the "View" button to see the uploaded data in a table</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function generateTestFile() {
+            const csvContent = `Retailer Name,Due Days
+ABC Store,30
+XYZ Mart,45
+Global Retail,60
+City Center,15
+Premium Shop,90
+SuperMarket Plus,25
+Electronics World,120
+Fashion Hub,35
+Home & Garden,50
+Tech Solutions,75`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'purchase-retailers-test.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('Test CSV file downloaded! Open it in Excel and save as .xlsx format for testing.');
+        }
+    </script>
+</body>
+</html>

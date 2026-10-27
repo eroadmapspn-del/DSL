@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to CSV Transformer - UGRAI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="config.js"></script>
+    <script src="sheets-client.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-hint {
+            color: #666;
+            font-size: 13px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h3 {
+            color: #2980b9;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            display: block;
+        }
+
+        .preview {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            background: #fafafa;
+            display: none;
+        }
+
+        .preview.show {
+            display: block;
+        }
+
+        .preview h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .preview pre {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s ease;
+            display: none;
+        }
+
+        .download-btn.show {
+            display: block;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .mapping-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .mapping-info strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel to CSV Transformer</h1>
+        <p class="subtitle">UGRAI Approved Bills - Convert Google Sheets export to Supabase format</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Click to upload or drag & drop</div>
+            <div class="upload-hint">Excel file (.xlsx) from Google Sheets</div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+        </div>
+
+        <div class="info-box">
+            <h3>Expected Excel Columns:</h3>
+            <ul>
+                <li>Timestamp, Bill Number, Bill Date, Retailer Name</li>
+                <li>Net Amount, Payment received</li>
+                <li>Payment Method, Cash Received, Cash Receipt Number, Cash Receipt Photo</li>
+                <li>Bank Name, Cheque Number, Cheque Date, Cheque Amount, Cheque Photo</li>
+                <li>UPI Amount Received, UPI Payment Photo/screenshot</li>
+                <li>NEFT Amount, Reason, Next date for Payment</li>
+                <li>Name, Email address</li>
+            </ul>
+        </div>
+
+        <div class="mapping-info">
+            <strong>Automatic Transformations:</strong><br>
+            • Payment method auto-detected from filled amount columns<br>
+            • Received amount = SUM(Cash + Cheque + UPI + NEFT)<br>
+            • Receipt number from Cash Receipt Number or Cheque Number<br>
+            • Photo URL from relevant photo column based on payment method<br>
+            • Date completed = Timestamp (DATE only, not timestamp)<br>
+            • Completed by = Name<br>
+            • Sector = "Unknown" (placeholder - update manually or via SQL after import)<br>
+            <br>
+            <strong style="color: #d32f2f;">⚠️ REQUIRED FIELDS:</strong><br>
+            • Bill Date and Date Completed must have valid dates<br>
+            • user_id: <code>9cc4ab56-4287-4c19-ab9d-915859912b55</code> (fixed for all rows)<br>
+            <br>
+            <strong style="color: #d32f2f;">🚨 DUPLICATE PREVENTION:</strong><br>
+            • Duplicates within the Excel file are automatically removed<br>
+            • ⚠️ Do NOT import the same file twice - it will cause database errors<br>
+            • If you get "duplicate key" error, the bill already exists in Supabase<br>
+            • To re-import: Delete existing bills from Supabase first, then import CSV
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="stats" id="stats" style="display: none;"></div>
+
+        <div class="preview" id="preview"></div>
+
+        <button class="download-btn" id="downloadCompletedBtn">
+            ⬇️ Download approved_ugrai.csv
+        </button>
+
+        <button class="download-btn" id="downloadHistoryBtn" style="margin-top: 10px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            ⬇️ Download ugrai_payment_history.csv
+        </button>
+        
+        <button class="download-btn" id="uploadToSupabaseBtn" style="margin-top: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            ☁️ Upload to Supabase
+        </button>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_CONFIG = {
+            url: 'dls-sheets-backend',
+            anonKey: 'not-needed'
+        };
+        
+        // Initialize Supabase client with explicit auth config for Chromium compatibility
+        const supabase = window.supabase.createClient(
+            SUPABASE_CONFIG.url, 
+            SUPABASE_CONFIG.anonKey,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage,
+                    flowType: 'pkce'
+                }
+            }
+        );
+        
+        let processedData = null;
+        let paymentHistoryData = null;
+        let retailerSectorMap = {};
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const preview = document.getElementById('preview');
+        const downloadCompletedBtn = document.getElementById('downloadCompletedBtn');
+        const downloadHistoryBtn = document.getElementById('downloadHistoryBtn');
+        const uploadToSupabaseBtn = document.getElementById('uploadToSupabaseBtn');
+        const statsDiv = document.getElementById('stats');
+        
+        // Load retailers on page load for sector mapping
+        async function loadRetailers() {
+            try {
+                const { data, error } = await supabase
+                    .from('retailers')
+                    .select('retailer_name, sector');
+                
+                if (error) throw error;
+                
+                // Create mapping from retailer name to sector
+                retailerSectorMap = {};
+                (data || []).forEach(r => {
+                    retailerSectorMap[r.retailer_name.toLowerCase().trim()] = r.sector;
+                });
+                
+                console.log('✅ Loaded', Object.keys(retailerSectorMap).length, 'retailers for sector mapping');
+            } catch (error) {
+                console.error('❌ Error loading retailers:', error);
+            }
+        }
+        
+        // Load retailers when page loads
+        loadRetailers();
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Download buttons
+        downloadCompletedBtn.addEventListener('click', () => {
+            if (processedData) {
+                downloadCompletedUgraiCSV(processedData);
+            }
+        });
+        
+        downloadHistoryBtn.addEventListener('click', () => {
+            if (paymentHistoryData) {
+                downloadPaymentHistoryCSV(paymentHistoryData);
+            }
+        });
+        
+        uploadToSupabaseBtn.addEventListener('click', async () => {
+            if (processedData && paymentHistoryData) {
+                await uploadToSupabase(processedData, paymentHistoryData);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                showStatus('Please upload an Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+
+            showStatus('Reading Excel file...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    if (jsonData.length === 0) {
+                        showStatus('No data found in Excel file', 'error');
+                        return;
+                    }
+
+                    processData(jsonData);
+                } catch (error) {
+                    showStatus('Error reading file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData(data) {
+            showStatus('Processing ' + data.length + ' rows...', 'info');
+
+            const transformed = [];
+            const paymentHistory = [];
+            const stats = {
+                total: data.length,
+                cash: 0,
+                upi: 0,
+                cheque: 0,
+                neft: 0,
+                errors: 0,
+                multiplePayments: 0
+            };
+            
+            // Group by bill number to detect duplicates and multiple payments
+            const billGroups = {};
+
+            // First pass: Group all rows by bill number
+            data.forEach((row, index) => {
+                try {
+                    const billNumber = (row['Bill Number'] || '').toString().trim();
+                    
+                    // Skip rows without bill numbers
+                    if (!billNumber) {
+                        console.warn(`❌ Row ${index + 2}: Missing bill_number - SKIPPING`);
+                        console.warn(`   Data:`, {
+                            'Timestamp': row['Timestamp'],
+                            'Bill Date': row['Bill Date'],
+                            'Retailer Name': row['Retailer Name'],
+                            'Net Amount': row['Net Amount'],
+                            'Payment Method': row['Payment Method'],
+                            'Cash Received': row['Cash Received'],
+                            'Cheque Amount': row['Cheque Amount'],
+                            'UPI Amount Received': row['UPI Amount Received'],
+                            'NEFT Amount': row['NEFT Amount'],
+                            'Name': row['Name']
+                        });
+                        stats.errors++;
+                        return;
+                    }
+                    
+                    const normalizedBillNumber = billNumber.toUpperCase();
+                    
+                    // Add to bill group
+                    if (!billGroups[normalizedBillNumber]) {
+                        billGroups[normalizedBillNumber] = [];
+                    }
+                    
+                    billGroups[normalizedBillNumber].push({ row, index, originalBillNumber: billNumber });
+
+                } catch (error) {
+                    console.error('❌ Error grouping row', index + 2, error);
+                    console.error('   Row data:', row);
+                    stats.errors++;
+                }
+            });
+
+            // Second pass: Process each bill group
+            Object.entries(billGroups).forEach(([normalizedBillNumber, bills]) => {
+                try {
+                    if (bills.length > 1) {
+                        stats.multiplePayments++;
+                        console.log(`💰 Bill ${bills[0].originalBillNumber}: ${bills.length} payments found`);
+                    }
+                    
+                    // Process each payment in the group
+                    let cumulativeAmount = 0;
+                    const netAmount = parseFloat(bills[0].row['Net Amount'] || 0);
+                    
+                    bills.forEach((billData, paymentIndex) => {
+                        const row = billData.row;
+                        const billNumber = billData.originalBillNumber;
+                        
+                        // Detect payment method based on which amount field has value
+                        let paymentMethod = '';
+                        let receivedAmount = 0;
+                        let receiptNumber = '';
+                        let photoUrl = '';
+
+                        const cashAmount = parseFloat(row['Cash Received'] || 0);
+                        const chequeAmount = parseFloat(row['Cheque Amount'] || 0);
+                        const upiAmount = parseFloat(row['UPI Amount Received'] || 0);
+                        const neftAmount = parseFloat(row['NEFT Amount'] || 0);
+
+                        // Determine payment method and use ONLY that method's amount (priority: Cash > Cheque > UPI > NEFT)
+                        if (cashAmount > 0) {
+                            paymentMethod = 'Cash';
+                            receivedAmount = cashAmount;  // Only cash amount
+                            receiptNumber = row['Cash Receipt Number'] || '';
+                            photoUrl = row['Cash Receipt Photo'] || '';
+                            if (paymentIndex === 0) stats.cash++;
+                        } else if (chequeAmount > 0) {
+                            paymentMethod = 'Cheque';
+                            receivedAmount = chequeAmount;  // Only cheque amount
+                            receiptNumber = row['Cheque Number'] || '';
+                            photoUrl = row['Cheque Photo'] || '';
+                            if (paymentIndex === 0) stats.cheque++;
+                        } else if (upiAmount > 0) {
+                            paymentMethod = 'UPI';
+                            receivedAmount = upiAmount;  // Only UPI amount
+                            receiptNumber = '';
+                            photoUrl = row['UPI Payment Photo/screenshot'] || '';
+                            if (paymentIndex === 0) stats.upi++;
+                        } else if (neftAmount > 0) {
+                            paymentMethod = 'NEFT';
+                            receivedAmount = neftAmount;  // Only NEFT amount
+                            receiptNumber = '';
+                            photoUrl = '';
+                            if (paymentIndex === 0) stats.neft++;
+                        } else {
+                            // Fallback if no amount columns have values
+                            paymentMethod = row['Payment Method'] || 'Cash';
+                            receivedAmount = 0;
+                            if (paymentIndex === 0) stats.cash++;
+                        }
+                        
+                        // Add to cumulative total for this bill
+                        cumulativeAmount += receivedAmount;
+                        
+                        // Debug logging for payment amounts
+                        if (paymentIndex === 0 || receivedAmount > 0) {
+                            console.log(`💰 ${billNumber} Payment #${paymentIndex + 1}: ${paymentMethod} ₹${receivedAmount} (Cumulative: ₹${cumulativeAmount})`);
+                        }
+
+                        // Format dates
+                        const formatDate = (dateStr) => {
+                            if (!dateStr) return '';
+                            
+                            try {
+                                if (typeof dateStr === 'number') {
+                                    const excelEpoch = new Date(1899, 11, 30);
+                                    const msPerDay = 24 * 60 * 60 * 1000;
+                                    const date = new Date(excelEpoch.getTime() + dateStr * msPerDay);
+                                    if (!isNaN(date.getTime())) {
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        return `${year}-${month}-${day}`;
+                                    }
+                                }
+                                
+                                if (typeof dateStr === 'string' && dateStr.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+                                    const parts = dateStr.split(/[\s\/]/);
+                                    const datePart = parts[0];
+                                    const dateParts = datePart.split('/');
+                                    if (dateParts.length === 3) {
+                                        const [day, month, year] = dateParts;
+                                        if (day && month && year) {
+                                            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                                        }
+                                    }
+                                }
+                                
+                                const date = new Date(dateStr);
+                                if (!isNaN(date.getTime())) {
+                                    return date.toISOString().split('T')[0];
+                                }
+                            } catch (error) {
+                                console.warn('Error formatting date:', dateStr, error);
+                            }
+                            
+                            return '';
+                        };
+                        
+                        const formatTimestamp = (dateStr) => {
+                            if (!dateStr) return '';
+                            
+                            try {
+                                if (typeof dateStr === 'number') {
+                                    const excelEpoch = new Date(1899, 11, 30);
+                                    const msPerDay = 24 * 60 * 60 * 1000;
+                                    const date = new Date(excelEpoch.getTime() + dateStr * msPerDay);
+                                    if (!isNaN(date.getTime())) {
+                                        return date.toISOString();
+                                    }
+                                }
+                                
+                                if (typeof dateStr === 'string' && dateStr.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+                                    const [datePart, timePart] = dateStr.split(/\s+/);
+                                    if (datePart) {
+                                        const dateParts = datePart.split('/');
+                                        if (dateParts.length === 3) {
+                                            const [day, month, year] = dateParts;
+                                            if (day && month && year) {
+                                                const time = timePart || '00:00:00';
+                                                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time}`;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                const date = new Date(dateStr);
+                                if (!isNaN(date.getTime())) {
+                                    return date.toISOString();
+                                }
+                            } catch (error) {
+                                console.warn('Error formatting timestamp:', dateStr, error);
+                            }
+                            
+                            return '';
+                        };
+
+                        const completedDate = formatTimestamp(row['Timestamp']);
+                        const dateCompletedOnly = completedDate ? completedDate.split('T')[0] : '1970-01-01';
+                        const billDate = formatDate(row['Bill Date']) || '1970-01-01';
+                        const retailerName = row['Retailer Name'] || '';
+                        
+                        // Auto-detect sector from retailer name
+                        const retailerKey = retailerName.toLowerCase().trim();
+                        const sector = retailerSectorMap[retailerKey] || 'Unknown';
+                        
+                        const completedBy = row['Name'] || '';
+                        
+                        // Calculate outstanding amount for this payment
+                        const outstandingAmount = netAmount - cumulativeAmount;
+                        const paymentType = outstandingAmount > 0 ? 'partial' : 'full';
+                        
+                        // Create payment history entry for this payment
+                        const historyEntry = {
+                            user_id: '9cc4ab56-4287-4c19-ab9d-915859912b55',
+                            bill_number: billNumber,
+                            bill_date: billDate,
+                            retailer_name: retailerName,
+                            sector: sector,
+                            payment_number: paymentIndex + 1,
+                            original_net_amount: netAmount.toFixed(2),
+                            payment_amount: receivedAmount.toFixed(2),
+                            outstanding_amount: outstandingAmount.toFixed(2),
+                            payment_type: paymentType,
+                            payment_method: paymentMethod,
+                            receipt_number: receiptNumber,
+                            cheque_date: paymentMethod === 'Cheque' ? (formatDate(row['Cheque Date']) || '') : '',
+                            photo_uploaded: photoUrl ? 'TRUE' : 'FALSE',
+                            photo_url: photoUrl,
+                            payment_date: dateCompletedOnly,
+                            date_approved: dateCompletedOnly,
+                            completed_by: completedBy,
+                            approved_by: completedBy,
+                            notes: bills.length > 1 ? `Payment ${paymentIndex + 1} of ${bills.length}` : 'Single payment'
+                        };
+                        
+                        paymentHistory.push(historyEntry);
+                        
+                        // Only add to approved_ugrai on the LAST payment (or if single payment)
+                        if (paymentIndex === bills.length - 1) {
+                            const transformedRow = {
+                                user_id: '9cc4ab56-4287-4c19-ab9d-915859912b55',
+                                bill_number: billNumber,
+                                bill_date: billDate,
+                                retailer_name: retailerName,
+                                sector: sector,
+                                net_amount: netAmount.toFixed(2),
+                                status: 'Approved',
+                                assigned_to: completedBy,
+                                payment_method: paymentMethod,
+                                receipt_number: receiptNumber,
+                                received_amount: cumulativeAmount.toFixed(2),
+                                cheque_date: paymentMethod === 'Cheque' ? (formatDate(row['Cheque Date']) || '1970-01-01') : '1970-01-01',
+                                photo_uploaded: photoUrl ? 'TRUE' : 'FALSE',
+                                photo_url: photoUrl,
+                                date_completed: dateCompletedOnly,
+                                date_approved: dateCompletedOnly,
+                                completed_by: completedBy,
+                                approved_by: completedBy,
+                                original_supply_id: ''
+                            };
+                            
+                            transformed.push(transformedRow);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error processing bill group', normalizedBillNumber, error);
+                    stats.errors++;
+                }
+            });
+
+            processedData = transformed;
+            paymentHistoryData = paymentHistory;
+            
+            // Console summary for debugging
+            console.log('\n📊 TRANSFORMATION SUMMARY:');
+            console.log(`  Total rows in Excel: ${data.length}`);
+            console.log(`  Unique bills (approved_ugrai): ${transformed.length}`);
+            console.log(`  Payment history entries: ${paymentHistory.length}`);
+            console.log(`  Bills with multiple payments: ${stats.multiplePayments}`);
+            console.log(`  Errors: ${stats.errors}`);
+            console.log(`  Payment methods: Cash=${stats.cash}, Cheque=${stats.cheque}, UPI=${stats.upi}, NEFT=${stats.neft}`);
+            
+            console.log('\n📋 BILL NUMBERS (first 10):');
+            transformed.slice(0, 10).forEach((bill, i) => {
+                const historyCount = paymentHistory.filter(h => h.bill_number === bill.bill_number).length;
+                console.log(`  ${i + 1}. ${bill.bill_number} - ${historyCount} payment(s)`);
+            });
+            if (transformed.length > 10) {
+                console.log(`  ... and ${transformed.length - 10} more`);
+            }
+            
+            let statusMessage = `✅ Successfully processed!<br><br>`;
+            statusMessage += `<strong>📊 Summary:</strong><br>`;
+            statusMessage += `• Unique bills: ${transformed.length}<br>`;
+            statusMessage += `• Payment history entries: ${paymentHistory.length}<br>`;
+            statusMessage += `• Bills with multiple payments: ${stats.multiplePayments}<br>`;
+            
+            let statusType = 'success';
+            
+            if (stats.errors > 0) {
+                statusMessage += `<br>⚠️ Skipped ${stats.errors} rows with errors`;
+                statusType = 'info';
+            }
+            
+            statusMessage += `<br><br><strong style="color: #2e7d32;">✅ TWO CSV FILES READY:</strong><br>`;
+            statusMessage += `1️⃣ <strong>approved_ugrai.csv</strong> - ${transformed.length} bills (one row per bill with total amount)<br>`;
+            statusMessage += `2️⃣ <strong>ugrai_payment_history.csv</strong> - ${paymentHistory.length} payments (all payment details)<br>`;
+            statusMessage += `<br><strong>📌 Import order:</strong> Import approved_ugrai.csv FIRST, then ugrai_payment_history.csv`;
+            
+            showStatus(statusMessage, statusType);
+            showStats(stats);
+            showPreview(transformed, paymentHistory);
+            downloadCompletedBtn.classList.add('show');
+            downloadHistoryBtn.classList.add('show');
+            uploadToSupabaseBtn.classList.add('show');
+        }
+
+        function showStats(stats) {
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total}</div>
+                    <div class="stat-label">Total Rows</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${paymentHistoryData ? paymentHistoryData.length : 0}</div>
+                    <div class="stat-label">Payment Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.multiplePayments}</div>
+                    <div class="stat-label">Multi-Payment Bills</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.cash}</div>
+                    <div class="stat-label">Cash</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.cheque}</div>
+                    <div class="stat-label">Cheque</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.upi}</div>
+                    <div class="stat-label">UPI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.neft}</div>
+                    <div class="stat-label">NEFT</div>
+                </div>
+            `;
+            statsDiv.style.display = 'grid';
+        }
+
+        function showPreview(completedData, historyData) {
+            const completedPreview = completedData.slice(0, 2);
+            const historyPreview = historyData.slice(0, 3);
+            
+            preview.innerHTML = `
+                <h3>Preview - approved_ugrai.csv (first 2 bills):</h3>
+                <pre>${JSON.stringify(completedPreview, null, 2)}</pre>
+                
+                <h3 style="margin-top: 20px;">Preview - ugrai_payment_history.csv (first 3 payments):</h3>
+                <pre>${JSON.stringify(historyPreview, null, 2)}</pre>
+            `;
+            preview.classList.add('show');
+        }
+
+        function showStatus(message, type) {
+            status.innerHTML = message; // Changed from textContent to innerHTML to render HTML tags
+            status.className = 'status ' + type;
+        }
+
+        function downloadCompletedUgraiCSV(data) {
+            if (!data || data.length === 0) {
+                showStatus('No data to download', 'error');
+                return;
+            }
+
+            const headers = [
+                'user_id',
+                'bill_number',
+                'bill_date',
+                'retailer_name',
+                'sector',
+                'net_amount',
+                'status',
+                'assigned_to',
+                'payment_method',
+                'receipt_number',
+                'received_amount',
+                'cheque_date',
+                'photo_uploaded',
+                'photo_url',
+                'date_completed',
+                'date_approved',
+                'completed_by',
+                'approved_by',
+                'original_supply_id'
+            ];
+
+            let csv = headers.join(',') + '\n';
+
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    let value = row[header];
+                    if (value === undefined || value === null || value === '') {
+                        return '';
+                    }
+                    value = String(value);
+                    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                        return '"' + value.replace(/"/g, '""') + '"';
+                    }
+                    return value;
+                });
+                csv += values.join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'approved_ugrai.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showStatus('✅ approved_ugrai.csv downloaded!', 'success');
+            console.log(`✅ Downloaded approved_ugrai.csv with ${data.length} bills`);
+        }
+        
+        async function uploadToSupabase(completedData, historyData) {
+            uploadToSupabaseBtn.disabled = true;
+            uploadToSupabaseBtn.textContent = '⏳ Uploading...';
+            
+            try {
+                showStatus('🚀 Starting upload to Supabase...', 'info');
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                let approvedInserted = 0;
+                let approvedErrors = 0;
+                let historyInserted = 0;
+                let historyErrors = 0;
+                let movedToUgraiData = 0;
+                let movedErrors = 0;
+                
+                const billsToMoveToUgraiData = []; // Track bills with outstanding payments
+                
+                // Step 1: Upload bills directly to approved_ugrai
+                console.log('📤 Step 1: Uploading to approved_ugrai table...');
+                showStatus('📤 Step 1/3: Uploading bills to approved_ugrai...', 'info');
+                
+                for (const bill of completedData) {
+                    try {
+                        const netAmount = parseFloat(bill.net_amount);
+                        const receivedAmount = parseFloat(bill.received_amount);
+                        
+                        // Insert to approved_ugrai
+                        const { error: insertError } = await supabase
+                            .from('approved_ugrai')
+                            .insert([{
+                                user_id: bill.user_id,
+                                bill_number: bill.bill_number,
+                                bill_date: bill.bill_date,
+                                retailer_name: bill.retailer_name,
+                                sector: bill.sector,
+                                net_amount: bill.net_amount,
+                                status: 'Approved',
+                                assigned_to: bill.assigned_to,
+                                payment_method: bill.payment_method,
+                                receipt_number: bill.receipt_number || '',
+                                received_amount: bill.received_amount,
+                                cheque_date: bill.cheque_date,
+                                photo_uploaded: bill.photo_uploaded === 'TRUE',
+                                photo_url: bill.photo_url || '',
+                                date_completed: bill.date_completed,
+                                date_approved: today,
+                                completed_by: bill.completed_by,
+                                approved_by: bill.completed_by,
+                                original_supply_id: bill.original_supply_id || null
+                            }]);
+                        
+                        if (insertError) {
+                            if (insertError.code === '23505') {
+                                console.warn(`⚠️ Bill ${bill.bill_number} already exists in approved_ugrai - skipping`);
+                            } else {
+                                throw insertError;
+                            }
+                        } else {
+                            approvedInserted++;
+                            console.log(`✅ Inserted ${bill.bill_number} to approved_ugrai`);
+                        }
+                        
+                        // Check if bill has outstanding payment
+                        if (receivedAmount < netAmount) {
+                            const outstanding = netAmount - receivedAmount;
+                            console.log(`💰 Bill ${bill.bill_number}: Outstanding ₹${outstanding.toFixed(2)} (${receivedAmount}/${netAmount})`);
+                            billsToMoveToUgraiData.push(bill);
+                        }
+                        
+                    } catch (error) {
+                        approvedErrors++;
+                        console.error(`❌ Error processing ${bill.bill_number}:`, error);
+                    }
+                }
+                
+                // Step 2: Upload payment history entries
+                console.log('📤 Step 2: Uploading to ugrai_payment_history table...');
+                showStatus('📤 Step 2/3: Uploading payment history...', 'info');
+                
+                for (const payment of historyData) {
+                    try {
+                        const { error: insertError } = await supabase
+                            .from('ugrai_payment_history')
+                            .insert([{
+                                user_id: payment.user_id,
+                                bill_number: payment.bill_number,
+                                bill_date: payment.bill_date,
+                                retailer_name: payment.retailer_name,
+                                sector: payment.sector,
+                                payment_number: payment.payment_number,
+                                original_net_amount: payment.original_net_amount,
+                                payment_amount: payment.payment_amount,
+                                outstanding_amount: payment.outstanding_amount,
+                                payment_type: payment.payment_type,
+                                payment_method: payment.payment_method,
+                                receipt_number: payment.receipt_number || '',
+                                cheque_date: payment.cheque_date || null,
+                                photo_uploaded: payment.photo_uploaded === 'TRUE',
+                                photo_url: payment.photo_url || '',
+                                payment_date: payment.date_completed, // Use payment_date column
+                                completed_by: payment.completed_by,
+                                date_approved: today,
+                                approved_by: payment.completed_by,
+                                notes: payment.notes || ''
+                            }]);
+                        
+                        if (insertError) {
+                            if (insertError.code === '23505') {
+                                console.warn(`⚠️ Duplicate payment entry skipped: ${payment.bill_number} payment #${payment.payment_number}`);
+                            } else {
+                                throw insertError;
+                            }
+                        } else {
+                            historyInserted++;
+                        }
+                    } catch (error) {
+                        historyErrors++;
+                        console.error(`❌ Error inserting payment for ${payment.bill_number}:`, error);
+                    }
+                }
+                
+                // Step 3: Move bills with outstanding payments to ugrai_data
+                if (billsToMoveToUgraiData.length > 0) {
+                    console.log(`📤 Step 3: Moving ${billsToMoveToUgraiData.length} bills with outstanding payments to ugrai_data...`);
+                    showStatus(`📤 Step 3/3: Moving ${billsToMoveToUgraiData.length} incomplete bills to ugrai_data...`, 'info');
+                    
+                    for (const bill of billsToMoveToUgraiData) {
+                        try {
+                            // Insert to ugrai_data
+                            const { error: insertError } = await supabase
+                                .from('ugrai_data')
+                                .insert([{
+                                    user_id: bill.user_id,
+                                    bill_number: bill.bill_number,
+                                    bill_date: bill.bill_date,
+                                    retailer_name: bill.retailer_name,
+                                    sector: bill.sector,
+                                    net_amount: bill.net_amount,
+                                    received_amount: bill.received_amount,
+                                    status: 'Pending',
+                                    assigned_to: bill.assigned_to
+                                }]);
+                            
+                            if (insertError) {
+                                if (insertError.code === '23505') {
+                                    console.warn(`⚠️ Bill ${bill.bill_number} already exists in ugrai_data - skipping`);
+                                } else {
+                                    throw insertError;
+                                }
+                            } else {
+                                console.log(`✅ Moved ${bill.bill_number} to ugrai_data`);
+                                
+                                // Delete from approved_ugrai
+                                const { error: deleteError } = await supabase
+                                    .from('approved_ugrai')
+                                    .delete()
+                                    .eq('bill_number', bill.bill_number)
+                                    .eq('user_id', bill.user_id);
+                                
+                                if (deleteError) {
+                                    console.error(`⚠️ Error deleting ${bill.bill_number} from approved_ugrai:`, deleteError);
+                                } else {
+                                    console.log(`🗑️ Deleted ${bill.bill_number} from approved_ugrai`);
+                                    movedToUgraiData++;
+                                }
+                            }
+                            
+                        } catch (error) {
+                            movedErrors++;
+                            console.error(`❌ Error moving ${bill.bill_number} to ugrai_data:`, error);
+                        }
+                    }
+                } else {
+                    console.log('✅ Step 3: No bills with outstanding payments - all bills fully paid!');
+                }
+                
+                // Show final summary
+                let summaryHTML = `<strong>✅ Upload Complete!</strong><br><br>`;
+                summaryHTML += `<strong>📊 approved_ugrai:</strong><br>`;
+                summaryHTML += `• Bills inserted: ${approvedInserted}<br>`;
+                summaryHTML += `• Errors: ${approvedErrors}<br><br>`;
+                summaryHTML += `<strong>📋 ugrai_payment_history:</strong><br>`;
+                summaryHTML += `• Payment entries inserted: ${historyInserted}<br>`;
+                summaryHTML += `• Errors: ${historyErrors}<br><br>`;
+                summaryHTML += `<strong>� ugrai_data (incomplete bills):</strong><br>`;
+                summaryHTML += `• Bills moved: ${movedToUgraiData}<br>`;
+                summaryHTML += `• Errors: ${movedErrors}<br><br>`;
+                
+                const completeBills = approvedInserted - movedToUgraiData;
+                summaryHTML += `<strong style="color: #2e7d32;">✅ Summary:</strong><br>`;
+                summaryHTML += `• Complete bills (in approved_ugrai): ${completeBills}<br>`;
+                summaryHTML += `• Incomplete bills (moved to ugrai_data): ${movedToUgraiData}<br>`;
+                summaryHTML += `• Total bills processed: ${approvedInserted}`;
+                
+                showStatus(summaryHTML, 'success');
+                
+                uploadToSupabaseBtn.textContent = '✅ Upload Complete!';
+                setTimeout(() => {
+                    uploadToSupabaseBtn.textContent = '☁️ Upload to Supabase';
+                    uploadToSupabaseBtn.disabled = false;
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Upload failed:', error);
+                showStatus('❌ Upload failed: ' + error.message, 'error');
+                uploadToSupabaseBtn.textContent = '☁️ Upload to Supabase';
+                uploadToSupabaseBtn.disabled = false;
+            }
+        }
+
+        function downloadPaymentHistoryCSV(data) {
+            if (!data || data.length === 0) {
+                showStatus('No payment history data to download', 'error');
+                return;
+            }
+
+            const headers = [
+                'user_id',
+                'bill_number',
+                'bill_date',
+                'retailer_name',
+                'sector',
+                'payment_number',
+                'original_net_amount',
+                'payment_amount',
+                'outstanding_amount',
+                'payment_type',
+                'payment_method',
+                'receipt_number',
+                'cheque_date',
+                'photo_uploaded',
+                'photo_url',
+                'payment_date',
+                'date_approved',
+                'completed_by',
+                'approved_by',
+                'notes'
+            ];
+
+            let csv = headers.join(',') + '\n';
+
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    let value = row[header];
+                    if (value === undefined || value === null || value === '') {
+                        return '';
+                    }
+                    value = String(value);
+                    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                        return '"' + value.replace(/"/g, '""') + '"';
+                    }
+                    return value;
+                });
+                csv += values.join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'ugrai_payment_history.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showStatus('✅ ugrai_payment_history.csv downloaded!', 'success');
+            console.log(`✅ Downloaded ugrai_payment_history.csv with ${data.length} payment entries`);
+        }
+    </script>
+</body>
+</html>

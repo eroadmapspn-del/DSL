@@ -1,0 +1,33 @@
+Test Retailer Upload Instructions
+=====================================
+
+Create an Excel file with the following structure:
+
+Column A: Retailer Name
+Column B: Sector
+
+Sample Data:
+Row 1 (Headers): Retailer Name | Sector
+Row 2: ABC Electronics | Electronics
+Row 3: Fashion Store | Clothing
+Row 4: Food Market | Grocery
+
+Save as: test-retailers.xlsx
+
+Expected Columns (case-insensitive):
+- "retailer name" or "Retailer Name"  
+- "sector" or "Sector"
+
+The system will:
+1. Check file format (.xlsx/.xls)
+2. Validate required columns exist
+3. Extract retailer data from rows 2+
+4. Check for duplicates within file
+5. Check for existing retailers in database
+6. Save new retailers to database
+7. Show success/error message
+
+Debug Console Output:
+- Look for "🚀 Retailer file upload triggered!" when selecting file
+- Check for any error messages in console
+- Verify database connection and table structure

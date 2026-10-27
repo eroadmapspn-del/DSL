@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Section Debug Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 5px solid;
+        }
+        .success { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .warning { background-color: #fff3cd; border-color: #ffc107; color: #856404; }
+        .info { background-color: #d1ecf1; border-color: #17a2b8; color: #0c5460; }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .test-retailer {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛒 Purchase Section Debug Tool</h1>
+    <p>This tool helps debug the purchase section data persistence issues.</p>
+    
+    <div class="grid">
+        <div class="card">
+            <h2>📊 Current Database State</h2>
+            <button onclick="loadCurrentData()">🔄 Load Current Data</button>
+            <button onclick="clearAllData()">🗑️ Clear All Data</button>
+            <div id="current-data-results"></div>
+        </div>
+        
+        <div class="card">
+            <h2>🧪 Test Data Operations</h2>
+            <button onclick="testAddRetailer()">➕ Test Add Retailer</button>
+            <button onclick="testAddEntry()">📝 Test Add Entry</button>
+            <button onclick="testBulkRetailers()">📤 Test Bulk Upload</button>
+            <div id="test-results"></div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>📝 Raw Data View</h2>
+        <div class="grid">
+            <div>
+                <h3>Purchase Retailers</h3>
+                <pre id="retailers-data">Loading...</pre>
+            </div>
+            <div>
+                <h3>Purchase Entries</h3>
+                <pre id="entries-data">Loading...</pre>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>🔍 Debugging Info</h2>
+        <button onclick="showDebugInfo()">🔍 Show Debug Info</button>
+        <div id="debug-info"></div>
+    </div>
+    
+    <script>
+        const SUPABASE_CONFIG = {
+            url: 'https://kvmoseafcfdbfdvbbwgr.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2bW9zZWFmY2ZkYmZkdmJyd2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxOTk5MjgsImV4cCI6MjA3Mzc3NTkyOH0._ORbzx_79fcvp4jlnT4UE0SN6Vk0tE4y88Oyi0KepHM'
+        };
+        
+        const supabase = window.supabase.createClient(
+            SUPABASE_CONFIG.url, 
+            SUPABASE_CONFIG.anonKey,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage,
+                    flowType: 'pkce'
+                }
+            }
+        );
+        
+        function addResult(containerId, type, title, content) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${title}</strong><br>${content}`;
+            container.appendChild(div);
+        }
+        
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+        
+        async function loadCurrentData() {
+            clearResults('current-data-results');
+            
+            try {
+                // Load retailers
+                const { data: retailers, error: retailersError } = await supabase
+                    .from('purchase_retailers')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                    
+                if (retailersError) {
+                    addResult('current-data-results', 'error', 'Retailers Error', retailersError.message);
+                } else {
+                    addResult('current-data-results', 'success', `📊 Found ${retailers.length} retailers`, 
+                        retailers.length > 0 ? 'Retailers loaded successfully' : 'No retailers found');
+                    document.getElementById('retailers-data').textContent = JSON.stringify(retailers, null, 2);
+                }
+                
+                // Load entries
+                const { data: entries, error: entriesError } = await supabase
+                    .from('purchase_entries')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                    
+                if (entriesError) {
+                    addResult('current-data-results', 'error', 'Entries Error', entriesError.message);
+                } else {
+                    addResult('current-data-results', 'success', `📝 Found ${entries.length} entries`, 
+                        entries.length > 0 ? 'Entries loaded successfully' : 'No entries found');
+                    document.getElementById('entries-data').textContent = JSON.stringify(entries, null, 2);
+                }
+                
+            } catch (error) {
+                addResult('current-data-results', 'error', 'Load Error', error.message);
+            }
+        }
+        
+        async function clearAllData() {
+            if (!confirm('Are you sure you want to clear ALL purchase data? This cannot be undone!')) {
+                return;
+            }
+            
+            clearResults('current-data-results');
+            
+            try {
+                // Clear entries first (foreign key constraints)
+                const { error: entriesError } = await supabase
+                    .from('purchase_entries')
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+                    
+                if (entriesError) {
+                    addResult('current-data-results', 'error', 'Clear Entries Error', entriesError.message);
+                    return;
+                }
+                
+                // Clear retailers
+                const { error: retailersError } = await supabase
+                    .from('purchase_retailers')
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+                    
+                if (retailersError) {
+                    addResult('current-data-results', 'error', 'Clear Retailers Error', retailersError.message);
+                    return;
+                }
+                
+                addResult('current-data-results', 'success', '🗑️ All Data Cleared', 'All purchase data has been removed');
+                loadCurrentData(); // Refresh display
+                
+            } catch (error) {
+                addResult('current-data-results', 'error', 'Clear Error', error.message);
+            }
+        }
+        
+        async function testAddRetailer() {
+            clearResults('test-results');
+            
+            try {
+                const testRetailer = {
+                    retailer_name: `Test Retailer ${Date.now()}`,
+                    due_days: 30,
+                    user_id: 'debug-test-user'
+                };
+                
+                const { data, error } = await supabase
+                    .from('purchase_retailers')
+                    .insert(testRetailer)
+                    .select()
+                    .single();
+                    
+                if (error) {
+                    addResult('test-results', 'error', 'Add Retailer Failed', error.message);
+                } else {
+                    addResult('test-results', 'success', '✅ Retailer Added', 
+                        `Successfully added: ${data.retailer_name}`);
+                    loadCurrentData(); // Refresh display
+                }
+                
+            } catch (error) {
+                addResult('test-results', 'error', 'Test Error', error.message);
+            }
+        }
+        
+        async function testAddEntry() {
+            clearResults('test-results');
+            
+            try {
+                const testEntry = {
+                    unique_id: `TEST-${Date.now()}`,
+                    bill_number: `BILL-${Date.now()}`,
+                    bill_date: new Date().toISOString().split('T')[0],
+                    retailer_name: 'Test Retailer',
+                    taxable_amount: 100.00,
+                    total_tax: 18.00,
+                    deduction: 0.00,
+                    net_amount: 118.00,
+                    status: 'Received',
+                    user_id: 'debug-test-user'
+                };
+                
+                const { data, error } = await supabase
+                    .from('purchase_entries')
+                    .insert(testEntry)
+                    .select()
+                    .single();
+                    
+                if (error) {
+                    addResult('test-results', 'error', 'Add Entry Failed', error.message);
+                } else {
+                    addResult('test-results', 'success', '✅ Entry Added', 
+                        `Successfully added: ${data.bill_number}`);
+                    loadCurrentData(); // Refresh display
+                }
+                
+            } catch (error) {
+                addResult('test-results', 'error', 'Test Error', error.message);
+            }
+        }
+        
+        async function testBulkRetailers() {
+            clearResults('test-results');
+            
+            try {
+                const bulkRetailers = [
+                    { retailer_name: 'Bulk Test 1', due_days: 30, user_id: 'debug-test-user' },
+                    { retailer_name: 'Bulk Test 2', due_days: 45, user_id: 'debug-test-user' },
+                    { retailer_name: 'Bulk Test 3', due_days: 60, user_id: 'debug-test-user' }
+                ];
+                
+                const { data, error } = await supabase
+                    .from('purchase_retailers')
+                    .insert(bulkRetailers)
+                    .select();
+                    
+                if (error) {
+                    addResult('test-results', 'error', 'Bulk Upload Failed', error.message);
+                } else {
+                    addResult('test-results', 'success', '✅ Bulk Upload Success', 
+                        `Successfully added ${data.length} retailers`);
+                    loadCurrentData(); // Refresh display
+                }
+                
+            } catch (error) {
+                addResult('test-results', 'error', 'Bulk Test Error', error.message);
+            }
+        }
+        
+        async function showDebugInfo() {
+            clearResults('debug-info');
+            
+            addResult('debug-info', 'info', 'Configuration', `
+                <strong>Supabase URL:</strong> ${SUPABASE_CONFIG.url}<br>
+                <strong>Key Length:</strong> ${SUPABASE_CONFIG.anonKey.length} characters<br>
+                <strong>Client Status:</strong> ${supabase ? 'Initialized' : 'Not initialized'}
+            `);
+            
+            // Test connection
+            try {
+                const { data, error } = await supabase
+                    .from('purchase_retailers')
+                    .select('count');
+                    
+                if (error) {
+                    addResult('debug-info', 'error', 'Connection Test', `Error: ${error.message}`);
+                } else {
+                    addResult('debug-info', 'success', 'Connection Test', 'Database connection successful');
+                }
+            } catch (error) {
+                addResult('debug-info', 'error', 'Connection Test', `Error: ${error.message}`);
+            }
+        }
+        
+        // Auto-load data on page load
+        window.onload = function() {
+            loadCurrentData();
+            showDebugInfo();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,830 @@
+## Table `retailers`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int4` | Primary |
+| `retailer_name` | `varchar` |  Unique |
+| `sector` | `varchar` |  |
+| `user_id` | `varchar` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `bills`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int4` | Primary |
+| `bill_number` | `varchar` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `varchar` |  |
+| `net_amount` | `numeric` |  |
+| `brand` | `varchar` |  Nullable |
+| `sector` | `varchar` |  Nullable |
+| `status` | `varchar` |  Nullable |
+| `supply_through` | `varchar` |  Nullable |
+| `user_id` | `varchar` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `active_supplies`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int4` | Primary |
+| `bill_id` | `int4` |  Nullable |
+| `bill_number` | `varchar` |  |
+| `retailer_name` | `varchar` |  |
+| `sector` | `varchar` |  Nullable |
+| `net_amount` | `numeric` |  |
+| `brand` | `varchar` |  Nullable |
+| `supply_through` | `varchar` |  Nullable |
+| `status` | `varchar` |  Nullable |
+| `payment_method` | `varchar` |  Nullable |
+| `receipt_number` | `varchar` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `completion_date` | `timestamptz` |  Nullable |
+| `user_id` | `varchar` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+
+## Table `approved_bills`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int4` | Primary |
+| `original_bill_id` | `int4` |  Nullable |
+| `bill_number` | `varchar` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `varchar` |  |
+| `sector` | `varchar` |  Nullable |
+| `net_amount` | `numeric` |  |
+| `received_amount` | `numeric` |  Nullable |
+| `brand` | `varchar` |  Nullable |
+| `supply_through` | `varchar` |  Nullable |
+| `payment_method` | `varchar` |  Nullable |
+| `receipt_number` | `varchar` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `status` | `varchar` |  Nullable |
+| `approval_date` | `timestamptz` |  Nullable |
+| `user_id` | `varchar` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+
+## Table `edited_bills`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int4` | Primary |
+| `original_bill_id` | `int4` |  Nullable |
+| `bill_number` | `varchar` |  |
+| `original_amount` | `numeric` |  |
+| `edited_amount` | `numeric` |  |
+| `retailer_name` | `varchar` |  |
+| `sector` | `varchar` |  Nullable |
+| `brand` | `varchar` |  Nullable |
+| `edit_reason` | `text` |  Nullable |
+| `edited_date` | `timestamptz` |  Nullable |
+| `user_id` | `varchar` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+
+## Table `ugrai_data`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `net_amount` | `numeric` |  |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+| `received_amount` | `numeric` |  |
+
+## Table `ugrai_entries`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `net_amount` | `numeric` |  |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+| `received_amount` | `numeric` |  |
+
+## Table `ugrai_assignments`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `sector` | `text` |  |
+| `assigned_to` | `text` |  |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `completed_ugrai`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `net_amount` | `numeric` |  |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `payment_method` | `text` |  |
+| `receipt_number` | `text` |  Nullable |
+| `received_amount` | `numeric` |  |
+| `cheque_date` | `date` |  Nullable |
+| `photo_uploaded` | `bool` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `date_completed` | `date` |  |
+| `completed_by` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `approved_ugrai`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `net_amount` | `numeric` |  |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `payment_method` | `text` |  |
+| `receipt_number` | `text` |  Nullable |
+| `received_amount` | `numeric` |  |
+| `cheque_date` | `date` |  Nullable |
+| `photo_uploaded` | `bool` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `date_completed` | `date` |  |
+| `date_approved` | `date` |  |
+| `completed_by` | `text` |  Nullable |
+| `approved_by` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `purchase_retailers`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `retailer_name` | `varchar` |  |
+| `due_days` | `int4` |  |
+| `user_id` | `varchar` |  |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `purchase_entries`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `unique_id` | `varchar` |  |
+| `bill_number` | `varchar` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `varchar` |  |
+| `taxable_amount` | `numeric` |  |
+| `total_tax` | `numeric` |  |
+| `deduction` | `numeric` |  |
+| `net_amount` | `numeric` |  |
+| `deduction_type` | `varchar` |  Nullable |
+| `credit_note_number` | `varchar` |  Nullable |
+| `credit_note_date` | `date` |  Nullable |
+| `status` | `varchar` |  |
+| `note` | `text` |  Nullable |
+| `voucher_number` | `varchar` |  Nullable |
+| `confirmed_at` | `timestamptz` |  Nullable |
+| `completed_at` | `timestamptz` |  Nullable |
+| `due_date` | `date` |  Nullable |
+| `user_id` | `varchar` |  |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `ugrai_in_progress`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `net_amount` | `numeric` |  |
+| `assigned_to` | `text` |  |
+| `assigned_date` | `timestamptz` |  Nullable |
+| `source_table` | `text` |  |
+| `source_id` | `uuid` |  |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `ugrai_completed`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `net_amount` | `numeric` |  |
+| `assigned_to` | `text` |  |
+| `payment_method` | `text` |  |
+| `received_amount` | `numeric` |  |
+| `receipt_number` | `text` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `payment_photo_url` | `text` |  Nullable |
+| `completed_date` | `timestamptz` |  Nullable |
+| `source_table` | `text` |  |
+| `source_id` | `uuid` |  |
+| `in_progress_id` | `uuid` |  |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `roles`
+
+System roles with granular permissions
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `name` | `varchar` |  Unique |
+| `display_name` | `varchar` |  |
+| `description` | `text` |  Nullable |
+| `permissions` | `jsonb` |  Nullable |
+| `is_system_role` | `bool` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `user_roles`
+
+User role assignments
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  Nullable |
+| `role_id` | `uuid` |  Nullable |
+| `assigned_by` | `uuid` |  Nullable |
+| `assigned_at` | `timestamptz` |  Nullable |
+
+## Table `user_profiles`
+
+Extended user profile information
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  Nullable Unique |
+| `full_name` | `varchar` |  Nullable |
+| `email` | `varchar` |  Nullable |
+| `department` | `varchar` |  Nullable |
+| `is_active` | `bool` |  Nullable |
+| `last_login` | `timestamptz` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `audit_logs`
+
+Admin action audit trail
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  Nullable |
+| `action` | `varchar` |  |
+| `resource_type` | `varchar` |  Nullable |
+| `resource_id` | `varchar` |  Nullable |
+| `details` | `jsonb` |  Nullable |
+| `ip_address` | `inet` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+
+## Table `bill_photos`
+
+Stores metadata for bill-related photos uploaded to Supabase Storage
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `bill_number` | `text` |  |
+| `bill_type` | `text` |  |
+| `photo_type` | `text` |  Nullable |
+| `photo_url` | `text` |  |
+| `photo_name` | `text` |  |
+| `storage_path` | `text` |  |
+| `file_size` | `int4` |  Nullable |
+| `file_type` | `text` |  Nullable |
+| `uploaded_at` | `timestamptz` |  Nullable |
+| `uploaded_by` | `uuid` |  Nullable |
+| `is_active` | `bool` |  Nullable |
+| `metadata` | `jsonb` |  Nullable |
+
+## Table `ugrai_payment_history`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  |
+| `original_net_amount` | `numeric` |  |
+| `payment_number` | `int4` |  |
+| `payment_date` | `date` |  |
+| `payment_amount` | `numeric` |  |
+| `outstanding_amount` | `numeric` |  |
+| `payment_type` | `text` |  |
+| `payment_method` | `text` |  |
+| `receipt_number` | `text` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `photo_uploaded` | `bool` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `completed_by` | `text` |  Nullable |
+| `approved_by` | `text` |  Nullable |
+| `date_approved` | `date` |  |
+| `source_bill_id` | `uuid` |  Nullable |
+| `notes` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `ugrai_entries_backup_20250112`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+
+## Table `ugrai_entries_backup_20251112_082919`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+
+## Table `ugrai_data_backup_20251112_091639`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+
+## Table `ugrai_entries_backup_20251112_091639`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+
+## Table `ugrai_entries_backup_20251115_052611`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+
+## Table `approved_ugrai_incomplete_backup_20251117_114737`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `payment_method` | `text` |  Nullable |
+| `receipt_number` | `text` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `photo_uploaded` | `bool` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `date_completed` | `date` |  Nullable |
+| `date_approved` | `date` |  Nullable |
+| `completed_by` | `text` |  Nullable |
+| `approved_by` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `approved_ugrai_incomplete_backup_20251125_125459`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `payment_method` | `text` |  Nullable |
+| `receipt_number` | `text` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `photo_uploaded` | `bool` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `date_completed` | `date` |  Nullable |
+| `date_approved` | `date` |  Nullable |
+| `completed_by` | `text` |  Nullable |
+| `approved_by` | `text` |  Nullable |
+| `original_supply_id` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `ugrai_payment_history_backup_full_20251130`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `original_net_amount` | `numeric` |  Nullable |
+| `payment_number` | `int4` |  Nullable |
+| `payment_date` | `date` |  Nullable |
+| `payment_amount` | `numeric` |  Nullable |
+| `outstanding_amount` | `numeric` |  Nullable |
+| `payment_type` | `text` |  Nullable |
+| `payment_method` | `text` |  Nullable |
+| `receipt_number` | `text` |  Nullable |
+| `cheque_date` | `date` |  Nullable |
+| `photo_uploaded` | `bool` |  Nullable |
+| `photo_url` | `text` |  Nullable |
+| `completed_by` | `text` |  Nullable |
+| `approved_by` | `text` |  Nullable |
+| `date_approved` | `date` |  Nullable |
+| `source_bill_id` | `uuid` |  Nullable |
+| `notes` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## Table `ugrai_data_backup_received_amount_20251130`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+
+## Table `ugrai_data_backup_net_amount_fix_20251202`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+
+## Table `ugrai_data_backup_partial_payment_fix_20251207`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` |  Nullable |
+| `user_id` | `uuid` |  Nullable |
+| `bill_number` | `text` |  Nullable |
+| `bill_date` | `date` |  Nullable |
+| `retailer_name` | `text` |  Nullable |
+| `sector` | `text` |  Nullable |
+| `net_amount` | `numeric` |  Nullable |
+| `status` | `text` |  Nullable |
+| `assigned_to` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+| `current_stage` | `text` |  Nullable |
+| `received_amount` | `numeric` |  Nullable |
+
+## Table `cash_receipts`
+
+Tracks Tally cash receipt numbers for cash payments - Shared team data (no user filtering)
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `payment_source` | `text` |  |
+| `payment_reference_id` | `text` |  |
+| `source_table` | `text` |  |
+| `bill_number` | `text` |  |
+| `bill_date` | `date` |  |
+| `retailer_name` | `text` |  |
+| `sector` | `text` |  Nullable |
+| `payment_amount` | `numeric` |  |
+| `payment_date` | `date` |  |
+| `tally_receipt_number` | `text` |  Nullable |
+| `status` | `text` |  |
+| `processed_by` | `uuid` |  Nullable |
+| `processed_date` | `timestamptz` |  Nullable |
+| `notes` | `text` |  Nullable |
+| `created_at` | `timestamptz` |  Nullable |
+| `updated_at` | `timestamptz` |  Nullable |
+
+## RLS Policies
+
+### `user_roles`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `temp_allow_all_user_roles` | ALL | authenticated | PERMISSIVE | `true` | `true` |
+
+### `user_profiles`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can view their own profile` | SELECT | public | PERMISSIVE | `(user_id = auth.uid())` | — |
+| `Admins can manage user profiles` | ALL | public | PERMISSIVE | `is_user_admin()` | — |
+| `Users can manage their own profile` | ALL | public | PERMISSIVE | `(user_id = auth.uid())` | — |
+| `Admins can manage all profiles` | ALL | public | PERMISSIVE | `is_user_admin(auth.uid())` | — |
+
+### `ugrai_data`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can view their own ugrai_data` | SELECT | public | PERMISSIVE | `((auth.uid() = user_id) OR ((auth.uid() IS NULL) AND (user_id = '00000000-0000-0000-0000-000000000001'::uuid)))` | — |
+| `Users can insert their own ugrai_data` | INSERT | public | PERMISSIVE | — | `((auth.uid() = user_id) OR ((auth.uid() IS NULL) AND (user_id = '00000000-0000-0000-0000-000000000001'::uuid)))` |
+| `Users can update their own ugrai_data` | UPDATE | public | PERMISSIVE | `((auth.uid() = user_id) OR ((auth.uid() IS NULL) AND (user_id = '00000000-0000-0000-0000-000000000001'::uuid)))` | — |
+| `Users can delete their own ugrai_data` | DELETE | public | PERMISSIVE | `((auth.uid() = user_id) OR ((auth.uid() IS NULL) AND (user_id = '00000000-0000-0000-0000-000000000001'::uuid)))` | — |
+
+### `purchase_retailers`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can view their own purchase retailers` | SELECT | public | PERMISSIVE | `((user_id)::text = current_setting('app.current_user_id'::text, true))` | — |
+| `Users can insert their own purchase retailers` | INSERT | public | PERMISSIVE | — | `((user_id)::text = current_setting('app.current_user_id'::text, true))` |
+| `Users can update their own purchase retailers` | UPDATE | public | PERMISSIVE | `((user_id)::text = current_setting('app.current_user_id'::text, true))` | — |
+| `Users can delete their own purchase retailers` | DELETE | public | PERMISSIVE | `((user_id)::text = current_setting('app.current_user_id'::text, true))` | — |
+
+### `purchase_entries`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can view their own purchase entries` | SELECT | public | PERMISSIVE | `((user_id)::text = current_setting('app.current_user_id'::text, true))` | — |
+| `Users can insert their own purchase entries` | INSERT | public | PERMISSIVE | — | `((user_id)::text = current_setting('app.current_user_id'::text, true))` |
+| `Users can update their own purchase entries` | UPDATE | public | PERMISSIVE | `((user_id)::text = current_setting('app.current_user_id'::text, true))` | — |
+| `Users can delete their own purchase entries` | DELETE | public | PERMISSIVE | `((user_id)::text = current_setting('app.current_user_id'::text, true))` | — |
+
+### `ugrai_assignments`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `ugrai_assignments_insert_policy` | INSERT | public | PERMISSIVE | — | `(user_id = auth.uid())` |
+| `ugrai_assignments_update_policy` | UPDATE | public | PERMISSIVE | `((user_id = auth.uid()) OR (assigned_to = ( SELECT (up.full_name)::text AS full_name    FROM user_profiles up   WHERE (up.user_id = auth.uid())  LIMIT 1)))` | — |
+| `ugrai_assignments_delete_policy` | DELETE | public | PERMISSIVE | `(user_id = auth.uid())` | — |
+
+### `ugrai_entries`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Enable read access for authenticated users` | SELECT | authenticated | PERMISSIVE | `true` | — |
+| `Enable insert access for authenticated users` | INSERT | authenticated | PERMISSIVE | — | `true` |
+| `Enable update access for authenticated users` | UPDATE | authenticated | PERMISSIVE | `true` | `true` |
+| `Enable delete access for authenticated users` | DELETE | authenticated | PERMISSIVE | `true` | — |
+| `Enable read access for anon users` | SELECT | anon | PERMISSIVE | `true` | — |
+| `Authenticated users can view all ugrai_entries` | SELECT | public | PERMISSIVE | `(auth.role() = 'authenticated'::text)` | — |
+| `Authenticated users can insert ugrai_entries` | INSERT | public | PERMISSIVE | — | `(auth.role() = 'authenticated'::text)` |
+| `Authenticated users can update all ugrai_entries` | UPDATE | public | PERMISSIVE | `(auth.role() = 'authenticated'::text)` | — |
+| `Authenticated users can delete all ugrai_entries` | DELETE | public | PERMISSIVE | `(auth.role() = 'authenticated'::text)` | — |
+
+### `cash_receipts`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Admins and accountants can view all cash receipts` | SELECT | public | PERMISSIVE | `(EXISTS ( SELECT 1    FROM (user_roles ur      JOIN roles r ON ((ur.role_id = r.id)))   WHERE ((ur.user_id = auth.uid()) AND ((r.name)::text = ANY ((ARRAY['admin'::character varying, 'accountant'::character varying])::text[])))))` | — |
+| `Admins and accountants can insert cash receipts` | INSERT | public | PERMISSIVE | — | `(EXISTS ( SELECT 1    FROM (user_roles ur      JOIN roles r ON ((ur.role_id = r.id)))   WHERE ((ur.user_id = auth.uid()) AND ((r.name)::text = ANY ((ARRAY['admin'::character varying, 'accountant'::character varying])::text[])))))` |
+| `Admins and accountants can update cash receipts` | UPDATE | public | PERMISSIVE | `(EXISTS ( SELECT 1    FROM (user_roles ur      JOIN roles r ON ((ur.role_id = r.id)))   WHERE ((ur.user_id = auth.uid()) AND ((r.name)::text = ANY ((ARRAY['admin'::character varying, 'accountant'::character varying])::text[])))))` | — |
+
+### `bill_photos`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Allow viewing active bill photos` | SELECT | public | PERMISSIVE | `(is_active = true)` | — |
+| `Allow inserting bill photos` | INSERT | public | PERMISSIVE | — | `((auth.role() = 'authenticated'::text) AND (uploaded_by IS NOT NULL))` |
+| `Allow updating own bill photos` | UPDATE | public | PERMISSIVE | `((auth.role() = 'authenticated'::text) AND (uploaded_by = auth.uid()))` | `((auth.role() = 'authenticated'::text) AND (uploaded_by = auth.uid()))` |
+| `Allow deleting own bill photos` | UPDATE | public | PERMISSIVE | `((auth.role() = 'authenticated'::text) AND (uploaded_by = auth.uid()) AND (is_active = true))` | `((auth.role() = 'authenticated'::text) AND (uploaded_by = auth.uid()))` |
+| `Allow authenticated inserts` | INSERT | authenticated | PERMISSIVE | — | `true` |
+| `Allow inserts for bill photos` | INSERT | public | PERMISSIVE | — | `true` |
+| `Allow select for bill photos` | SELECT | public | PERMISSIVE | `true` | — |
+
+### `roles`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Admins can manage roles` | ALL | public | PERMISSIVE | `is_user_admin(auth.uid())` | — |
+
+### `audit_logs`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Admins can view audit logs` | SELECT | public | PERMISSIVE | `is_user_admin(auth.uid())` | — |
+
+### `ugrai_in_progress`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can manage their own UGRAI in progress` | ALL | public | PERMISSIVE | `(user_id = auth.uid())` | — |
+
+### `ugrai_completed`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can manage their own UGRAI completed` | ALL | public | PERMISSIVE | `(user_id = auth.uid())` | — |
+
+### `approved_ugrai`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Allow approved_ugrai select` | SELECT | public | PERMISSIVE | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` | — |
+| `Allow approved_ugrai insert` | INSERT | public | PERMISSIVE | — | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` |
+| `Allow approved_ugrai update` | UPDATE | public | PERMISSIVE | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` | — |
+| `Allow approved_ugrai delete` | DELETE | public | PERMISSIVE | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` | — |
+
+### `completed_ugrai`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Allow completed_ugrai select` | SELECT | public | PERMISSIVE | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` | — |
+| `Allow completed_ugrai insert` | INSERT | public | PERMISSIVE | — | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` |
+| `Allow completed_ugrai update` | UPDATE | public | PERMISSIVE | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` | — |
+| `Allow completed_ugrai delete` | DELETE | public | PERMISSIVE | `((user_id = COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000001'::uuid)) OR (user_id = '00000000-0000-0000-0000-000000000001'::uuid))` | — |
+
+### `ugrai_payment_history`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `Users can view their own ugrai payment history` | SELECT | public | PERMISSIVE | `(auth.uid() = user_id)` | — |
+| `Users can insert their own ugrai payment history` | INSERT | public | PERMISSIVE | — | `(auth.uid() = user_id)` |
+| `Users can update their own ugrai payment history` | UPDATE | public | PERMISSIVE | `(auth.uid() = user_id)` | — |
+
