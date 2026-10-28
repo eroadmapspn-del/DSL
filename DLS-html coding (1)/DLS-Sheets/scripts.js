@@ -1620,17 +1620,13 @@ function initEventListeners() {
         } else if (e.target.id === 'base-file-view-btn' || e.target.closest('#base-file-view-btn')) {
             const tableContainer = document.getElementById('retailer-data-table-container');
             if (tableContainer) {
-                const isHidden = tableContainer.classList.contains('hidden');
-                if (isHidden) {
-                    tableContainer.classList.remove('hidden');
-                    if (!appState.data.retailers || appState.data.retailers.length === 0) {
-                        appState.loadRetailers();
-                    } else {
-                        renderDashboard();
-                    }
-                } else {
-                    tableContainer.classList.add('hidden');
-                }
+                tableContainer.classList.remove('hidden');
+                tableContainer.style.display = 'block';
+            }
+            if (appState && typeof appState.loadRetailers === 'function') {
+                appState.loadRetailers();
+            } else {
+                renderDashboard();
             }
         } else if (e.target.closest('.add-edited-to-staging-btn')) {
             const billId = e.target.closest('.add-edited-to-staging-btn').dataset.billId;
@@ -4691,6 +4687,23 @@ function renderSubProcesses(processName) {
                     if (selectedContent) {
                         selectedContent.style.display = 'block';
                         console.log(`✅ Showing section: ${tabId}`);
+
+                        // Direct auto-load for Base File Management without clicking View
+                        if (tabId === 'base-file-management') {
+                            const tableContainer = document.getElementById('retailer-data-table-container');
+                            if (tableContainer) {
+                                tableContainer.classList.remove('hidden');
+                                tableContainer.style.display = 'block';
+                            }
+                            if (window.appState) {
+                                if (!window.appState.data?.retailers || window.appState.data.retailers.length === 0) {
+                                    console.log('📥 Auto-loading retailers data directly from DB...');
+                                    window.appState.loadRetailers();
+                                } else {
+                                    renderDashboard();
+                                }
+                            }
+                        }
 
                         // Special handling for cash-receipt to ensure full visibility
                         if (tabId === 'cash-receipt') {
