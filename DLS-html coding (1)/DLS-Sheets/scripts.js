@@ -146,10 +146,27 @@ function detectSupplyColumns(headers) {
 }
 
 function detectRetailerColumns(headers) {
-    return {
-        retailerName: findExactColumnIndex(headers, RETAILER_COLUMNS.retailerName),
-        sector: findExactColumnIndex(headers, RETAILER_COLUMNS.sector)
-    };
+    const normalizedHeaders = headers.map(h => String(h || '').toLowerCase().trim());
+    const nameAliases = [
+        'retailer name', 'retailer', 'retailers',
+        'supplier name', 'supplier', 'suppliers',
+        'party name', 'party', 'customer name', 'name', 'account name'
+    ];
+    const sectorAliases = [
+        'sector', 'sectors', 'area', 'zone', 'route', 'location'
+    ];
+
+    let retailerName = normalizedHeaders.findIndex(h => nameAliases.includes(h));
+    let sector = normalizedHeaders.findIndex(h => sectorAliases.includes(h));
+
+    if (retailerName === -1) {
+        retailerName = normalizedHeaders.findIndex(h => h.includes('retailer') || h.includes('supplier') || h.includes('party'));
+    }
+    if (sector === -1) {
+        sector = normalizedHeaders.findIndex(h => h.includes('sector') || h.includes('area') || h.includes('zone'));
+    }
+
+    return { retailerName, sector };
 }
 
 function initDOMReferences() {
@@ -539,13 +556,48 @@ function initEventListeners() {
         }
     });
 
+    // Tab Switcher for Add Supplier/Retailer Modal
+    function switchAddRetailerTab(mode) {
+        const tabSingle = document.getElementById('tab-add-single');
+        const tabBulk = document.getElementById('tab-add-bulk');
+        const secSingle = document.getElementById('section-add-single');
+        const secBulk = document.getElementById('section-add-bulk');
+
+        if (!tabSingle || !tabBulk || !secSingle || !secBulk) return;
+
+        if (mode === 'bulk') {
+            tabSingle.className = 'flex-1 py-2 text-center rounded-lg transition-all text-gray-600 hover:text-gray-900 cursor-pointer';
+            tabBulk.className = 'flex-1 py-2 text-center rounded-lg transition-all shadow-xs bg-white text-gray-900 cursor-pointer';
+            secSingle.classList.add('hidden');
+            secBulk.classList.remove('hidden');
+        } else {
+            tabSingle.className = 'flex-1 py-2 text-center rounded-lg transition-all shadow-xs bg-white text-gray-900 cursor-pointer';
+            tabBulk.className = 'flex-1 py-2 text-center rounded-lg transition-all text-gray-600 hover:text-gray-900 cursor-pointer';
+            secSingle.classList.remove('hidden');
+            secBulk.classList.add('hidden');
+            const nameInput = document.getElementById('new-retailer-name');
+            if (nameInput) setTimeout(() => nameInput.focus(), 80);
+        }
+    }
+
+    const tabAddSingle = document.getElementById('tab-add-single');
+    const tabAddBulk = document.getElementById('tab-add-bulk');
+    if (tabAddSingle) tabAddSingle.addEventListener('click', () => switchAddRetailerTab('single'));
+    if (tabAddBulk) tabAddBulk.addEventListener('click', () => switchAddRetailerTab('bulk'));
+
     if (addRetailerBtn) {
         addRetailerBtn.addEventListener('click', () => {
+            switchAddRetailerTab('single');
             showModal('add-retailer-modal');
             const nameInput = document.getElementById('new-retailer-name');
             if (nameInput) setTimeout(() => nameInput.focus(), 100);
         });
     }
+
+    // Modal Close buttons
+    document.querySelectorAll('.btn-cancel-retailer-modal, #close-add-retailer-modal, #close-add-retailer-modal-btn').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('add-retailer-modal'));
+    });
 
     if (newRetailerSectorSelect) {
         newRetailerSectorSelect.addEventListener('change', (e) => {
@@ -576,10 +628,20 @@ function initEventListeners() {
             const newRetailerName = nameInput ? nameInput.value.trim() : '';
             const newRetailerSector = sectorInput ? sectorInput.value.trim() : '';
             if (!newRetailerName || !newRetailerSector) {
-                showToast('Please enter both retailer name and sector.', 'error');
+                showToast('Please enter both supplier/retailer name and sector.', 'error');
                 return;
             }
-            const submitBtn = addRetailerForm.querySelector('button[type="submit"]');
+
+            // Check if retailer already exists
+            const exists = (appState.data?.retailers || []).some(r =>
+                String(r.name).toLowerCase().trim() === String(newRetailerName).toLowerCase().trim()
+            );
+            if (exists) {
+                showToast(`Supplier "${newRetailerName}" already exists in the database!`, 'warning');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-single-retailer-btn') || addRetailerForm.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Adding...';
@@ -591,66 +653,126 @@ function initEventListeners() {
                     addRetailerForm.reset();
                     const existingNewSectorInput = document.getElementById('new-sector-input');
                     if (existingNewSectorInput) existingNewSectorInput.remove();
+                    window.retailerCurrentPage = 1;
+                    renderDashboard();
                 }
             } finally {
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Add Retailer';
+                    submitBtn.innerHTML = `
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>Add Supplier</span>
+                    `;
                 }
             }
         });
     }
 
-    // Inline Quick-Add Retailer (Base File Management)
-    const inlineAddBtn = document.getElementById('inline-add-retailer-btn');
-    const inlineNameInput = document.getElementById('inline-new-retailer-name');
-    const inlineSectorInput = document.getElementById('inline-new-retailer-sector');
+    // Bulk upload file handling in Add Supplier Modal
+    let currentSelectedBulkFile = null;
+    const bulkDropzone = document.getElementById('bulk-upload-dropzone');
+    const bulkFileInput = document.getElementById('bulk-retailer-file-input');
+    const bulkFileInfo = document.getElementById('bulk-file-info');
+    const bulkFileName = document.getElementById('bulk-file-name');
+    const bulkFileSize = document.getElementById('bulk-file-size');
+    const bulkFileRemoveBtn = document.getElementById('bulk-file-remove-btn');
+    const submitBulkBtn = document.getElementById('submit-bulk-retailer-btn');
 
-    async function handleInlineAddRetailer() {
-        const nameInput = document.getElementById('inline-new-retailer-name');
-        const sectorInput = document.getElementById('inline-new-retailer-sector');
-        const addBtn = document.getElementById('inline-add-retailer-btn');
-
-        if (!nameInput || !sectorInput) return;
-        const name = nameInput.value.trim();
-        const sector = sectorInput.value.trim();
-
-        if (!name) {
-            showToast('Please enter a retailer name', 'error');
-            nameInput.focus();
-            return;
-        }
-        if (!sector) {
-            showToast('Please enter or select a sector', 'error');
-            sectorInput.focus();
+    function setSelectedBulkFile(file) {
+        if (!file) {
+            currentSelectedBulkFile = null;
+            if (bulkFileInput) bulkFileInput.value = '';
+            if (bulkFileInfo) bulkFileInfo.classList.add('hidden');
+            if (submitBulkBtn) submitBulkBtn.disabled = true;
             return;
         }
 
-        if (addBtn) {
-            addBtn.disabled = true;
-            addBtn.innerHTML = `<span>Adding...</span>`;
+        const validExts = ['xlsx', 'xls', 'csv'];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!validExts.includes(ext)) {
+            showToast('Please select a valid Excel (.xlsx, .xls) or CSV (.csv) file', 'error');
+            return;
         }
 
-        try {
-            const success = await appState.addRetailer(String(name), String(sector));
-            if (success !== false) {
-                nameInput.value = '';
-                sectorInput.value = '';
-                nameInput.focus();
-            }
-        } finally {
-            if (addBtn) {
-                addBtn.disabled = false;
-                addBtn.innerHTML = `
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>Add</span>
-                `;
-            }
+        currentSelectedBulkFile = file;
+        if (bulkFileName) bulkFileName.textContent = file.name;
+        if (bulkFileSize) {
+            const kb = (file.size / 1024).toFixed(1);
+            bulkFileSize.textContent = `(${kb} KB)`;
         }
+        if (bulkFileInfo) bulkFileInfo.classList.remove('hidden');
+        if (submitBulkBtn) submitBulkBtn.disabled = false;
     }
 
-    if (inlineAddBtn) {
-        inlineAddBtn.addEventListener('click', handleInlineAddRetailer);
+    if (bulkDropzone && bulkFileInput) {
+        bulkDropzone.addEventListener('click', (e) => {
+            if (e.target !== bulkFileInput && !e.target.closest('#bulk-file-remove-btn')) {
+                bulkFileInput.click();
+            }
+        });
+
+        bulkFileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) setSelectedBulkFile(file);
+        });
+
+        bulkDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            bulkDropzone.classList.add('border-blue-500', 'bg-blue-50/50');
+        });
+
+        bulkDropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            bulkDropzone.classList.remove('border-blue-500', 'bg-blue-50/50');
+        });
+
+        bulkDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            bulkDropzone.classList.remove('border-blue-500', 'bg-blue-50/50');
+            const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+            if (file) setSelectedBulkFile(file);
+        });
+    }
+
+    if (bulkFileRemoveBtn) {
+        bulkFileRemoveBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setSelectedBulkFile(null);
+        });
+    }
+
+    if (submitBulkBtn) {
+        submitBulkBtn.addEventListener('click', async () => {
+            if (!currentSelectedBulkFile) {
+                showToast('Please choose an Excel or CSV file first', 'warning');
+                return;
+            }
+
+            submitBulkBtn.disabled = true;
+            submitBulkBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span>Importing...</span>
+            `;
+
+            try {
+                const ok = await processRetailerFileUpload(currentSelectedBulkFile);
+                if (ok) {
+                    setSelectedBulkFile(null);
+                    closeModal('add-retailer-modal');
+                }
+            } catch (err) {
+                console.error('Error during bulk upload:', err);
+                showToast(`Error processing file: ${err.message || err}`, 'error');
+            } finally {
+                if (submitBulkBtn) {
+                    submitBulkBtn.disabled = !currentSelectedBulkFile;
+                    submitBulkBtn.innerHTML = `
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span>Import & Save to DB</span>
+                    `;
+                }
+            }
+        });
     }
 
     if (inlineNameInput) {
@@ -952,204 +1074,161 @@ function initEventListeners() {
         });
     }
 
-    // RETAILER DATA FILE UPLOAD (EXCEL OR CSV)
-    console.log('🔧 Setting up retailer file upload listener. Element found:', !!retailerBaseFileUpload);
-    if (retailerBaseFileUpload) {
-        console.log('✅ Retailer file upload element found, attaching listener');
-        retailerBaseFileUpload.addEventListener('change', async (e) => {
-            console.log('🚀 Retailer file upload triggered!');
-            const file = e.target.files[0];
-            console.log('📁 Selected file:', file ? file.name : 'No file selected');
+    // RETAILER / SUPPLIER DATA FILE UPLOAD (EXCEL OR CSV)
+    async function processRetailerFileUpload(file) {
+        if (!file) {
+            showToast('No file selected', 'error');
+            return false;
+        }
 
-            if (!file) {
-                console.log('❌ No file selected, exiting');
-                return;
+        const validExtensions = ['xlsx', 'xls', 'csv'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        if (!validExtensions.includes(fileExtension)) {
+            showToast('Please upload an Excel or CSV file (.xlsx, .xls, .csv)', 'error');
+            return false;
+        }
+
+        try {
+            console.log('Reading supplier/retailer file:', file.name);
+            let retailerRows = [];
+
+            if (fileExtension === 'csv') {
+                if (typeof XLSX !== 'undefined') {
+                    try {
+                        const data = await file.arrayBuffer();
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                    } catch (err) {
+                        console.warn('XLSX CSV parse fallback to text:', err);
+                    }
+                }
+                if (!retailerRows || retailerRows.length < 2) {
+                    const text = await file.text();
+                    retailerRows = parseCSVText(text);
+                }
+            } else {
+                if (typeof XLSX === 'undefined') {
+                    showToast('Excel reader library not loaded. Please refresh the page.', 'error');
+                    return false;
+                }
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
             }
 
-            const validExtensions = ['xlsx', 'xls', 'csv'];
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            console.log('📄 File extension:', fileExtension);
+            console.log('Supplier/Retailer rows read:', retailerRows ? retailerRows.length : 0);
 
-            if (!validExtensions.includes(fileExtension)) {
-                console.log('❌ Invalid file extension');
-                showToast('Please upload an Excel or CSV file (.xlsx, .xls, .csv)', 'error');
-                return;
+            if (!retailerRows || retailerRows.length < 2) {
+                showToast('File is empty or contains only headers.', 'warning');
+                return false;
             }
 
-            console.log('✅ Valid file selected:', file.name);
+            const headers = retailerRows[0].map(h => String(h || '').toLowerCase().trim());
+            const columnIndices = detectRetailerColumns(headers);
+
+            const missingColumns = [];
+            if (columnIndices.retailerName === -1) missingColumns.push('Retailer Name / Supplier Name');
+            if (columnIndices.sector === -1) missingColumns.push('Sector');
+
+            if (missingColumns.length > 0) {
+                showToast(`Missing columns: ${missingColumns.join(', ')}. Found: ${headers.filter(Boolean).join(', ')}`, 'error');
+                return false;
+            }
+
+            const newRetailers = [];
+            for (let i = 1; i < retailerRows.length; i++) {
+                const row = retailerRows[i];
+                const retailerName = String(row[columnIndices.retailerName] || '').trim();
+                const sector = String(row[columnIndices.sector] || '').trim();
+
+                if (retailerName && sector) {
+                    newRetailers.push({ name: retailerName, sector: sector });
+                }
+            }
+
+            if (newRetailers.length === 0) {
+                showToast('No valid supplier data found in file.', 'warning');
+                return false;
+            }
+
+            // Deduplicate within the file itself (keep first occurrence)
+            const uniqueRetailers = [];
+            const seenNames = new Set();
+            let duplicateInFileCount = 0;
+
+            newRetailers.forEach(retailer => {
+                const nameLower = retailer.name.toLowerCase().trim();
+                if (!seenNames.has(nameLower)) {
+                    seenNames.add(nameLower);
+                    uniqueRetailers.push(retailer);
+                } else {
+                    duplicateInFileCount++;
+                }
+            });
+
+            console.log(`📊 In-file deduplication: ${newRetailers.length} rows → ${uniqueRetailers.length} unique (${duplicateInFileCount} duplicate rows in file skipped)`);
+
+            // Check against database: SKIP ANY SUPPLIER THAT IS ALREADY STORED IN DB
+            await appState.loadRetailers();
+            const existingInDbSet = new Set(
+                (appState.data.retailers || []).map(r => String(r.name || '').toLowerCase().trim())
+            );
 
             try {
-                console.log('Reading retailer file:', file.name);
-                let retailerRows = [];
-
-                if (fileExtension === 'csv') {
-                    if (typeof XLSX !== 'undefined') {
-                        try {
-                            const data = await file.arrayBuffer();
-                            const workbook = XLSX.read(data, { type: 'array' });
-                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                            retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-                        } catch (err) {
-                            console.warn('XLSX CSV parse fallback to text:', err);
-                        }
-                    }
-                    if (!retailerRows || retailerRows.length < 2) {
-                        const text = await file.text();
-                        retailerRows = parseCSVText(text);
-                    }
-                } else {
-                    if (typeof XLSX === 'undefined') {
-                        showToast('Excel reader library not loaded. Please refresh the page.', 'error');
-                        return;
-                    }
-                    const data = await file.arrayBuffer();
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                if (typeof appState.checkExistingRetailers === 'function') {
+                    const dbMatches = await appState.checkExistingRetailers(uniqueRetailers.map(r => r.name));
+                    (dbMatches || []).forEach(name => existingInDbSet.add(String(name).toLowerCase().trim()));
                 }
+            } catch (err) {
+                console.warn('checkExistingRetailers warning:', err);
+            }
 
-                console.log('Retailer data read successfully. Rows:', retailerRows.length);
+            // Filter out any supplier already in DB
+            const retailersToAdd = uniqueRetailers.filter(r => !existingInDbSet.has(r.name.toLowerCase().trim()));
+            const skippedAlreadyInDb = uniqueRetailers.length - retailersToAdd.length;
 
-                if (!retailerRows || retailerRows.length < 2) {
-                    showToast('File is empty or contains only headers.', 'warning');
-                    return;
-                }
+            console.log(`📊 DB Duplicate Check: ${uniqueRetailers.length} unique in file | ${skippedAlreadyInDb} already in DB (skipped) | ${retailersToAdd.length} new to add`);
 
-                const headers = retailerRows[0].map(h => String(h || '').toLowerCase().trim());
-                console.log('Retailer headers:', headers);
-
-                const columnIndices = detectRetailerColumns(headers);
-                console.log('Retailer column indices:', columnIndices);
-
-                const missingColumns = [];
-                if (columnIndices.retailerName === -1) missingColumns.push('Retailer Name');
-                if (columnIndices.sector === -1) missingColumns.push('Sector');
-
-                if (missingColumns.length > 0) {
-                    showToast(`Missing columns: ${missingColumns.join(', ')}. Found: ${headers.join(', ')}`, 'error');
-                    return;
-                }
-
-                const newRetailers = [];
-                for (let i = 1; i < retailerRows.length; i++) {
-                    const row = retailerRows[i];
-                    const retailerName = String(row[columnIndices.retailerName] || '').trim();
-                    const sector = String(row[columnIndices.sector] || '').trim();
-
-                    if (retailerName && sector) {
-                        newRetailers.push({ name: retailerName, sector: sector });
-                    }
-                }
-
-                if (newRetailers.length === 0) {
-                    showToast('No valid retailer data found in file.', 'warning');
-                    return;
-                }
-
-                // Remove duplicates within the uploaded file (keep first occurrence)
-                const uniqueRetailers = [];
-                const seenNames = new Set();
-                let duplicateCount = 0;
-
-                newRetailers.forEach(retailer => {
-                    const nameLower = retailer.name.toLowerCase().trim();
-                    if (!seenNames.has(nameLower)) {
-                        seenNames.add(nameLower);
-                        uniqueRetailers.push(retailer);
-                    } else {
-                        duplicateCount++;
-                    }
-                });
-
-                console.log(`📊 Duplicate removal: ${newRetailers.length} total → ${uniqueRetailers.length} unique (${duplicateCount} duplicates removed)`);
-
-                if (duplicateCount > 0) {
-                    showToast(`ℹ️ Removed ${duplicateCount} duplicate entries from file. Processing ${uniqueRetailers.length} unique retailers.`, 'info', 4000);
-                }
-
-                // Use the deduplicated array
-                const finalRetailers = uniqueRetailers;
-
-                // Check for duplicates against existing retailers
-                console.log('🔍 Checking for duplicates against database. AppState available:', !!appState);
-                if (!appState) {
-                    console.error('❌ AppState not available!');
-                    showToast('Application not properly initialized. Please refresh the page.', 'error');
-                    return;
-                }
-
-                // Refresh retailer data to ensure we have the latest information
-                console.log('🔄 Refreshing retailer data before duplicate check...');
-                await appState.loadRetailers();
-
-                const existingRetailers = await appState.checkExistingRetailers(finalRetailers.map(r => r.name));
-                let retailersToAdd = finalRetailers;
-
-                console.log('📊 Existing retailers found:', existingRetailers.length, existingRetailers);
-
-                if (existingRetailers.length > 0) {
-                    // Filter out retailers that already exist in database
-                    retailersToAdd = finalRetailers.filter(retailer =>
-                        !existingRetailers.some(existingName =>
-                            existingName.toLowerCase().trim() === retailer.name.toLowerCase().trim()
-                        )
-                    );
-
-                    console.log(`🗃️ Database duplicate filtering: ${finalRetailers.length} → ${retailersToAdd.length} (${existingRetailers.length} already exist)`);
-                    console.log('🚫 Retailers already in database:', existingRetailers);
-                    console.log('✅ New retailers to add:', retailersToAdd.map(r => r.name));
-
-                    if (retailersToAdd.length === 0) {
-                        showToast(`ℹ️ All ${finalRetailers.length} retailers in the file already exist in the database.`, 'info', 5000);
-                        e.target.value = ''; // Clear the file input
-                        // Make sure table is visible to see existing retailers
-                        const tableContainer = document.getElementById('retailer-data-table-container');
-                        if (tableContainer) tableContainer.classList.remove('hidden');
-                        renderDashboard();
-                        return;
-                    }
-
-                    showToast(`ℹ️ Found ${existingRetailers.length} retailers that already exist. Adding ${retailersToAdd.length} new retailers.`, 'info', 4000);
-                } else {
-                    console.log('✅ No existing retailers found, adding all retailers');
-                    retailersToAdd = finalRetailers;
-                }
-
-                console.log('💾 Saving retailers to database...');
-                const result = await appState.addRetailers(retailersToAdd);
-                const addedCount = result.addedCount || 0;
-                const skippedCount = retailersToAdd.length - addedCount;
-
-                console.log(`✅ ${addedCount} new retailers saved, ${skippedCount} duplicates skipped`);
-
-                // Reload the retailers data to reflect changes
-                console.log('🔄 Reloading retailers data...');
-                await appState.loadRetailers();
-                console.log('✅ Retailers data reloaded');
-
-                if (addedCount > 0 && skippedCount > 0) {
-                    showToast(`✅ ${addedCount} new retailers added, ${skippedCount} duplicates skipped`, 'success', 5000);
-                } else if (addedCount > 0) {
-                    showToast(`✅ ${addedCount} new retailers added successfully!`, 'success');
-                } else {
-                    showToast(`ℹ️ No new retailers added - all ${skippedCount} retailers already exist`, 'info', 4000);
-                }
-
-                // Clear the file input to prevent re-uploads
-                e.target.value = '';
-                console.log('🧹 File input cleared');
-
-                // Auto-show table and reset page to 1
+            if (retailersToAdd.length === 0) {
+                showToast(`ℹ️ All ${uniqueRetailers.length} suppliers in file already exist in the database (0 added).`, 'info', 5000);
                 const tableContainer = document.getElementById('retailer-data-table-container');
-                if (tableContainer) {
-                    tableContainer.classList.remove('hidden');
-                }
-                window.retailerCurrentPage = 1;
+                if (tableContainer) tableContainer.classList.remove('hidden');
                 renderDashboard();
+                return true;
+            }
 
-            } catch (error) {
-                console.error('Retailer file error:', error);
-                showToast(`Error: ${error.message || 'Failed to read the retailer file'}`, 'error');
+            console.log(`💾 Saving ${retailersToAdd.length} new suppliers to database...`);
+            const result = await appState.addRetailers(retailersToAdd);
+            const addedCount = result?.addedCount || retailersToAdd.length;
+
+            // Reload database to immediately refresh table and badge
+            await appState.loadRetailers();
+            window.retailerCurrentPage = 1;
+            renderDashboard();
+
+            if (skippedAlreadyInDb > 0) {
+                showToast(`✅ Successfully added ${addedCount} new suppliers! (${skippedAlreadyInDb} already in database skipped)`, 'success', 6000);
+            } else {
+                showToast(`✅ Successfully added ${addedCount} new suppliers!`, 'success', 5000);
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Retailer file error:', error);
+            showToast(`Error: ${error.message || 'Failed to read the supplier file'}`, 'error');
+            return false;
+        }
+    }
+
+    if (retailerBaseFileUpload) {
+        retailerBaseFileUpload.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                await processRetailerFileUpload(file);
+                e.target.value = '';
             }
         });
     }
