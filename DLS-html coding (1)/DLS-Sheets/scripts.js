@@ -540,7 +540,13 @@ function initEventListeners() {
         }
     });
 
-    if (addRetailerBtn) addRetailerBtn.addEventListener('click', () => showModal('add-retailer-modal'));
+    if (addRetailerBtn) {
+        addRetailerBtn.addEventListener('click', () => {
+            showModal('add-retailer-modal');
+            const nameInput = document.getElementById('new-retailer-name');
+            if (nameInput) setTimeout(() => nameInput.focus(), 100);
+        });
+    }
 
     if (newRetailerSectorSelect) {
         newRetailerSectorSelect.addEventListener('change', (e) => {
@@ -564,17 +570,34 @@ function initEventListeners() {
     }
 
     if (addRetailerForm) {
-        addRetailerForm.addEventListener('submit', (e) => {
+        addRetailerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const newRetailerName = document.getElementById('new-retailer-name').value.trim();
+            const nameInput = document.getElementById('new-retailer-name');
             const sectorInput = document.getElementById('new-sector-input') || document.getElementById('new-retailer-sector');
-            const newRetailerSector = sectorInput.value.trim();
-            if (newRetailerName && newRetailerSector) {
-                appState.addRetailer(String(newRetailerName), String(newRetailerSector));
-                closeModal('add-retailer-modal');
-                addRetailerForm.reset();
-            } else {
-                showToast('Please enter both retailer name and sector.');
+            const newRetailerName = nameInput ? nameInput.value.trim() : '';
+            const newRetailerSector = sectorInput ? sectorInput.value.trim() : '';
+            if (!newRetailerName || !newRetailerSector) {
+                showToast('Please enter both retailer name and sector.', 'error');
+                return;
+            }
+            const submitBtn = addRetailerForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Adding...';
+            }
+            try {
+                const success = await appState.addRetailer(String(newRetailerName), String(newRetailerSector));
+                if (success !== false) {
+                    closeModal('add-retailer-modal');
+                    addRetailerForm.reset();
+                    const existingNewSectorInput = document.getElementById('new-sector-input');
+                    if (existingNewSectorInput) existingNewSectorInput.remove();
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Add Retailer';
+                }
             }
         });
     }
@@ -1136,6 +1159,94 @@ function initEventListeners() {
             window.retailerPageSize = e.target.value;
             window.retailerCurrentPage = 1;
             renderDashboard();
+        });
+    }
+
+    // Retailer table: Multi-select header checkbox
+    const retailersSelectAll = document.getElementById('retailers-select-all');
+    if (retailersSelectAll) {
+        retailersSelectAll.addEventListener('change', (e) => {
+            window.selectedRetailers = window.selectedRetailers || new Set();
+            const checkboxes = document.querySelectorAll('.retailer-row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const name = cb.dataset.name;
+                if (name) {
+                    if (e.target.checked) window.selectedRetailers.add(name);
+                    else window.selectedRetailers.delete(name);
+                }
+            });
+            renderDashboard();
+        });
+    }
+
+    // Retailer table: Row checkbox change delegation
+    document.addEventListener('change', (e) => {
+        if (e.target && e.target.classList.contains('retailer-row-checkbox')) {
+            window.selectedRetailers = window.selectedRetailers || new Set();
+            const name = e.target.dataset.name;
+            if (name) {
+                if (e.target.checked) window.selectedRetailers.add(name);
+                else window.selectedRetailers.delete(name);
+            }
+            renderDashboard();
+        }
+    });
+
+    // Clear selection button
+    const clearRetailerSelectionBtn = document.getElementById('clear-retailer-selection-btn');
+    if (clearRetailerSelectionBtn) {
+        clearRetailerSelectionBtn.addEventListener('click', () => {
+            if (window.selectedRetailers) window.selectedRetailers.clear();
+            renderDashboard();
+        });
+    }
+
+    // Delete selected button
+    const deleteSelectedRetailersBtn = document.getElementById('delete-selected-retailers-btn');
+    if (deleteSelectedRetailersBtn) {
+        deleteSelectedRetailersBtn.addEventListener('click', async () => {
+            if (!window.selectedRetailers || window.selectedRetailers.size === 0) {
+                showToast('No retailers selected', 'warning');
+                return;
+            }
+            const count = window.selectedRetailers.size;
+            const names = Array.from(window.selectedRetailers);
+            let confirmed = false;
+            if (typeof Swal !== 'undefined') {
+                const result = await Swal.fire({
+                    title: `Delete ${count} Retailers?`,
+                    html: `Are you sure you want to delete <strong>${count}</strong> selected retailers?<br><span class="text-xs text-red-500 font-medium">This will permanently delete them from the database.</span>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: `Yes, delete ${count}`,
+                    cancelButtonText: 'Cancel'
+                });
+                confirmed = result.isConfirmed;
+            } else {
+                confirmed = window.confirm(`Are you sure you want to delete ${count} selected retailers?`);
+            }
+
+            if (!confirmed) return;
+
+            deleteSelectedRetailersBtn.disabled = true;
+            deleteSelectedRetailersBtn.innerHTML = `<span>Deleting ${count}...</span>`;
+
+            try {
+                const success = await appState.deleteMultipleRetailers(names);
+                if (success) {
+                    window.selectedRetailers.clear();
+                    renderDashboard();
+                }
+            } finally {
+                deleteSelectedRetailersBtn.disabled = false;
+                deleteSelectedRetailersBtn.innerHTML = `
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>Delete Selected</span>
+                `;
+            }
         });
     }
 
@@ -8785,22 +8896,24 @@ class SupabaseAppState extends AppState {
 
         try {
             const exists = this.data.retailers.some(r =>
-                String(r.name).toLowerCase() === String(name).toLowerCase() &&
-                String(r.sector).toLowerCase() === String(sector).toLowerCase()
+                String(r.name).toLowerCase().trim() === String(name).toLowerCase().trim()
             );
 
             if (!exists) {
                 await this.supabaseService.addRetailer(name, sector);
-                showToast(`'${name}' added successfully!`);
+                showToast(`✅ Retailer '${name}' added successfully!`, 'success');
 
                 // Real-time update will happen via subscription, but refresh data to be sure
                 await this.loadRetailers();
+                return true;
             } else {
-                showToast(`'${name}' already exists!`);
+                showToast(`Retailer '${name}' already exists!`, 'warning');
+                return false;
             }
         } catch (error) {
             console.error('Error adding retailer:', error);
-            showToast('Error adding retailer');
+            showToast('Error adding retailer: ' + (error.message || 'Unknown error'), 'error');
+            return false;
         }
     }
 
@@ -8925,6 +9038,33 @@ class SupabaseAppState extends AppState {
         } catch (error) {
             console.error('Error in appState.deleteRetailer:', error);
             showToast('Error deleting retailer: ' + (error.message || 'Unknown error'), 'error');
+            return false;
+        }
+    }
+
+    async deleteMultipleRetailers(retailerNames) {
+        if (!retailerNames || retailerNames.length === 0) return true;
+
+        if (mockMode) {
+            const set = new Set(retailerNames.map(n => String(n).toLowerCase().trim()));
+            this.data.retailers = (this.data.retailers || []).filter(r => !set.has(String(r.name).toLowerCase().trim()));
+            showToast(`✅ ${retailerNames.length} retailers deleted successfully!`, 'success');
+            return true;
+        }
+
+        try {
+            console.log(`🗑️ Batch deleting ${retailerNames.length} retailers:`, retailerNames);
+            await this.supabaseService.deleteMultipleRetailers(retailerNames);
+
+            // Remove from local data array
+            const set = new Set(retailerNames.map(n => String(n).toLowerCase().trim()));
+            this.data.retailers = (this.data.retailers || []).filter(r => !set.has(String(r.name).toLowerCase().trim()));
+
+            showToast(`✅ ${retailerNames.length} retailers deleted successfully!`, 'success');
+            return true;
+        } catch (error) {
+            console.error('Error in appState.deleteMultipleRetailers:', error);
+            showToast('Error deleting selected retailers: ' + (error.message || 'Unknown error'), 'error');
             return false;
         }
     }
@@ -13029,12 +13169,37 @@ function renderDashboard() {
         nextBtn.disabled = window.retailerCurrentPage >= totalPages;
     }
 
+    // Multi-select state & bulk toolbar UI update
+    window.selectedRetailers = window.selectedRetailers || new Set();
+    const bulkBar = document.getElementById('retailer-bulk-actions-bar');
+    const selectedCount = window.selectedRetailers.size;
+    if (bulkBar) {
+        if (selectedCount > 0) {
+            bulkBar.classList.remove('hidden');
+            bulkBar.classList.add('flex');
+            const countEl = document.getElementById('retailer-selected-count');
+            if (countEl) countEl.textContent = selectedCount;
+            const textEl = document.getElementById('retailer-selected-text');
+            if (textEl) textEl.textContent = `${selectedCount} ${selectedCount === 1 ? 'retailer' : 'retailers'}`;
+        } else {
+            bulkBar.classList.add('hidden');
+            bulkBar.classList.remove('flex');
+        }
+    }
+
+    const selectAllCheckbox = document.getElementById('retailers-select-all');
+    if (selectAllCheckbox) {
+        const visibleNames = pageItems.map(r => r.name);
+        selectAllCheckbox.checked = visibleNames.length > 0 && visibleNames.every(name => window.selectedRetailers.has(name));
+        selectAllCheckbox.indeterminate = visibleNames.some(name => window.selectedRetailers.has(name)) && !selectAllCheckbox.checked;
+    }
+
     if (retailerTableBody) {
         if (pageItems.length === 0) {
             retailerTableBody.innerHTML = `
                 <tr class="table-row">
-                    <td colspan="4" class="text-center py-8 text-gray-500">
-                        ${totalRetailers === 0 && (appState.data.retailers || []).length > 0 ? 'No retailers match your search filters.' : 'No retailers found. Upload an Excel or CSV file to add retailers.'}
+                    <td colspan="5" class="text-center py-8 text-gray-500">
+                        ${totalRetailers === 0 && (appState.data.retailers || []).length > 0 ? 'No retailers match your search filters.' : 'No retailers found. Upload an Excel or CSV file or click "+ Add Retailer" to add.'}
                     </td>
                 </tr>
             `;
@@ -13042,10 +13207,14 @@ function renderDashboard() {
             retailerTableBody.innerHTML = pageItems.map((r, idx) => {
                 const globalIndex = startIndex + idx + 1;
                 const isEditing = window.editingRetailerId && (String(window.editingRetailerId) === String(r.id) || window.editingRetailerId === r.name);
+                const isSelected = window.selectedRetailers.has(r.name);
                 
                 if (isEditing) {
                     return `
                         <tr class="table-row bg-blue-50/70 border-l-4 border-blue-600 transition-colors" data-id="${r.id || ''}">
+                            <td class="py-2.5 px-3 text-center">
+                                <input type="checkbox" disabled class="opacity-30 rounded w-4 h-4">
+                            </td>
                             <td class="py-2.5 px-4 font-mono text-xs text-gray-500">${globalIndex}</td>
                             <td class="py-2.5 px-4">
                                 <input type="text" class="edit-retailer-name-input compact-input w-full bg-white border border-blue-400 rounded-md px-2 py-1 text-sm font-semibold focus:ring-1 focus:ring-blue-500" value="${escapeHtml(r.name)}" data-original-name="${escapeHtml(r.name)}" data-id="${r.id || ''}">
@@ -13070,7 +13239,10 @@ function renderDashboard() {
                 }
 
                 return `
-                    <tr class="table-row hover:bg-gray-50/80 transition-colors" data-id="${r.id || ''}">
+                    <tr class="table-row hover:bg-gray-50/80 transition-colors ${isSelected ? 'bg-red-50/40' : ''}" data-id="${r.id || ''}">
+                        <td class="py-2.5 px-3 text-center" data-label="Select">
+                            <input type="checkbox" class="retailer-row-checkbox rounded accent-red-600 cursor-pointer w-4 h-4" data-id="${r.id || ''}" data-name="${escapeHtml(r.name)}" ${isSelected ? 'checked' : ''}>
+                        </td>
                         <td class="py-2.5 px-4 font-mono text-xs text-gray-400" data-label="#">${globalIndex}</td>
                         <td class="py-2.5 px-4 font-medium text-gray-900" data-label="Retailer Name">${escapeHtml(r.name)}</td>
                         <td class="py-2.5 px-4 text-gray-700" data-label="Sector">

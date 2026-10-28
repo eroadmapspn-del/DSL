@@ -265,9 +265,17 @@ export class QueryService {
         const params: any[] = [];
         const whereClauses: string[] = [];
         filters.forEach(f => {
-          params.push(f.val);
-          const opSymbol = f.op === 'ilike' || f.op === 'like' ? 'ILIKE' : '=';
-          whereClauses.push(`"${f.col}" ${opSymbol} $${params.length}`);
+          if (f.op === 'in' && Array.isArray(f.val)) {
+            const placeholders = f.val.map((v: any) => {
+              params.push(v);
+              return `$${params.length}`;
+            }).join(',');
+            whereClauses.push(`"${f.col}" IN (${placeholders})`);
+          } else {
+            params.push(f.val);
+            const opSymbol = f.op === 'ilike' || f.op === 'like' ? 'ILIKE' : '=';
+            whereClauses.push(`"${f.col}" ${opSymbol} $${params.length}`);
+          }
         });
 
         let sql = `DELETE FROM "${tableName}"`;

@@ -595,6 +595,26 @@ class SupabaseDataService {
         }
     }
 
+    // Delete multiple retailers in batch
+    async deleteMultipleRetailers(retailerNames) {
+        try {
+            console.log(`🗑️ Batch deleting ${retailerNames.length} retailers from database:`, retailerNames);
+            if (!retailerNames || retailerNames.length === 0) return { data: [], count: 0 };
+            
+            const { data, error } = await supabase
+                .from('retailers')
+                .delete()
+                .in('retailer_name', retailerNames);
+                
+            if (error) throw error;
+            console.log('✅ Batch deleted retailers from database:', data);
+            return data;
+        } catch (error) {
+            console.error('Error batch deleting retailers:', error);
+            throw error;
+        }
+    }
+
     // Update a retailer's sector
     async updateRetailerSector(retailerName, newSector) {
         try {

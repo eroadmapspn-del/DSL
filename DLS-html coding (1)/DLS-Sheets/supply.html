@@ -161,13 +161,18 @@
                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                             <!-- Action Buttons -->
                             <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" id="add-retailer-btn"
+                                    class="compact-btn bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors duration-300 flex items-center gap-1.5 shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    <span>+ Add Retailer</span>
+                                </button>
                                 <button id="download-retailers-btn"
                                     class="compact-btn btn-red transition-colors duration-300">Download</button>
                                 <input type="file" id="retailer-base-file-upload" class="hidden" accept=".xlsx, .xls, .csv">
                                 <label for="retailer-base-file-upload"
                                     class="compact-btn btn-black transition-colors duration-300 cursor-pointer">Upload</label>
                                 <button id="base-file-view-btn"
-                                    class="compact-btn btn-white transition-colors duration-300">View</button>
+                                    class="compact-btn btn-white transition-colors duration-300">Refresh</button>
                             </div>
                             <!-- Filters -->
                             <div class="flex flex-col sm:flex-row items-center gap-3 lg:max-w-xl w-full lg:w-auto">
@@ -186,11 +191,30 @@
                                 <button type="button" id="clear-retailer-filters-btn" class="compact-btn bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded transition">Clear</button>
                             </div>
                         </div>
+
+                        <!-- Multi-select Bulk Actions Bar (hidden when 0 selected) -->
+                        <div id="retailer-bulk-actions-bar" class="hidden items-center justify-between mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs transition-all shadow-xs">
+                            <div class="flex items-center gap-2.5">
+                                <span class="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 bg-red-600 text-white rounded-full text-xs font-bold" id="retailer-selected-count">0</span>
+                                <span class="text-red-900 font-semibold"><span id="retailer-selected-text">0 retailers</span> selected</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="delete-selected-retailers-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold rounded-lg shadow-xs transition duration-150">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <span>Delete Selected</span>
+                                </button>
+                                <button type="button" id="clear-retailer-selection-btn" class="px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 font-medium rounded-lg shadow-xs transition duration-150">Deselect All</button>
+                            </div>
+                        </div>
+
                         <div id="retailer-data-table-container">
                             <div class="table-container">
                                 <table class="w-full text-sm">
                                     <thead class="text-xs uppercase bg-gray-50 border-b">
                                         <tr>
+                                            <th scope="col" class="py-3 px-3 text-center w-12">
+                                                <input type="checkbox" id="retailers-select-all" class="rounded accent-red-600 cursor-pointer w-4 h-4" title="Select all on this page">
+                                            </th>
                                             <th scope="col" class="py-3 px-4 text-left w-16">#</th>
                                             <th scope="col" class="py-3 px-4 text-left">Retailer Name</th>
                                             <th scope="col" class="py-3 px-4 text-left">Sector</th>
@@ -2789,10 +2813,10 @@
                 </div>
                 <div class="mb-6">
                     <label for="new-retailer-sector" class="block text-sm font-bold text-gray-600 mb-2">Sector</label>
-                    <select id="new-retailer-sector"
-                        class="compact-input w-full bg-gray-100 rounded-lg border border-gray-300 focus:outline-none focus:border-red-600">
-                        <!-- Options populated dynamically -->
-                    </select>
+                    <input type="text" id="new-retailer-sector" list="sector-list"
+                        placeholder="Select or enter sector name..."
+                        class="compact-input w-full bg-gray-100 rounded-lg border border-gray-300 focus:outline-none focus:border-red-600"
+                        required>
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" id="close-add-retailer-modal"
