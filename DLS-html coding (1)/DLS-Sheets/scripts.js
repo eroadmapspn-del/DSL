@@ -20,7 +20,7 @@ let mockMode = false;
 let supabaseService;
 
 const PROCESS_MAP = {
-    'supply': ['Base file management', 'Upload Supply Data', 'Bills to Dispatch', 'Supplies in Progress', 'Supply Management'],
+    'supply': ['Base File Management', 'Upload Supply Data', 'Bills to Dispatch', 'Supplies in Progress', 'Supply Management'],
     'ugrai': ['Ugrai Base File', 'Total Ugrai', 'Ugrai Issue', 'Ugrai in Progress', 'Ugrai Management'],
     'purchase': ['Purchase Base File', 'Purchase Entry', 'Accounting', 'Purchase Management', 'Purchased'],
     'analysis': ['Supply Analysis', 'Pending Bills', 'Payment Received Analysis', 'Purchase Analysis'],
@@ -56,6 +56,61 @@ let existingBillNumbers = ["Cash-2792", "Cash-7289"];
 
 // DOM Elements
 let themeToggle, mainProcessesContainer, subProcessesContainer, supplyDashboardContainer, ugraiDashboardContainer, purchaseDashboardContainer, analysisDashboardContainer, cashReceiptDashboardContainer, userIdDisplay, navUserIdDisplay, uploadTypeSelect, fileUploadSection, manualForm, brandSelect, retailerSelect, billNumberInput, billDateInput, netAmountInput, billError, addRetailerBtn, addRetailerModal, addRetailerForm, retailerNameSelect, newRetailerSectorSelect, temporaryBillsTableBody, stagedSelectAll, retailerBaseFileUpload, retailerTableBody, billsCount, allSupplyTableBody, dispatchSelectAll, submitDispatchBtn, activeSuppliesCount, todaysSuppliesTableBody, supplyDoneModal, modalBillSummary, modalBillNumber, supplyDoneForm, deliveryMethodSelect, conditionalFields, photoUploadContainer, receiptNumberContainer, receivedAmountContainer, chequeDateContainer, doneSuppliesCount, billsForApprovalTableBody, approvedBillsCount, suppliesReportTableBody, reportSearchInput, reportDateFilter, exportReportBtn, toastMessage, retailerNameFilter, sectorFilter, totalBillsCard, totalAmountCard, cashAmountCard, creditAmountCard, upiAmountCard, chequeAmountCard, cancelledAmountCard, editedAmountCard, fileUploadInput, baseFileViewBtn;
+
+// Helper: escape HTML to avoid XSS in dynamic tables
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Helper: robust CSV text parser supporting quotes and commas
+function parseCSVText(text) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let insideQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+            if (insideQuotes && nextChar === '"') {
+                currentCell += '"';
+                i++; // skip escaped quote
+            } else {
+                insideQuotes = !insideQuotes;
+            }
+        } else if (char === ',' && !insideQuotes) {
+            currentRow.push(currentCell.trim());
+            currentCell = '';
+        } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+            if (char === '\r' && nextChar === '\n') {
+                i++; // skip CRLF
+            }
+            currentRow.push(currentCell.trim());
+            if (currentRow.some(c => c.length > 0)) {
+                rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
+        }
+    }
+    if (currentCell.length > 0 || currentRow.length > 0) {
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(c => c.length > 0)) {
+            rows.push(currentRow);
+        }
+    }
+    return rows;
+}
 
 function findExactColumnIndex(headers, targetColumn) {
     const normalizedHeaders = headers.map(h => String(h || '').toLowerCase().trim());
@@ -800,7 +855,7 @@ function initEventListeners() {
         });
     }
 
-    // RETAILER DATA FILE UPLOAD
+    // RETAILER DATA FILE UPLOAD (EXCEL OR CSV)
     console.log('🔧 Setting up retailer file upload listener. Element found:', !!retailerBaseFileUpload);
     if (retailerBaseFileUpload) {
         console.log('✅ Retailer file upload element found, attaching listener');
@@ -814,35 +869,52 @@ function initEventListeners() {
                 return;
             }
 
-            const validExtensions = ['xlsx', 'xls'];
+            const validExtensions = ['xlsx', 'xls', 'csv'];
             const fileExtension = file.name.split('.').pop().toLowerCase();
             console.log('📄 File extension:', fileExtension);
 
             if (!validExtensions.includes(fileExtension)) {
                 console.log('❌ Invalid file extension');
-                showToast('Please upload an Excel file (.xlsx or .xls)');
+                showToast('Please upload an Excel or CSV file (.xlsx, .xls, .csv)', 'error');
                 return;
             }
 
-            console.log('✅ Valid Excel file selected:', file.name);
-
-            if (typeof XLSX === 'undefined') {
-                showToast('Excel reader library not loaded. Please refresh the page.');
-                return;
-            }
+            console.log('✅ Valid file selected:', file.name);
 
             try {
-                console.log('Reading retailer Excel file...');
-                // Use XLSX library to support both .xls and .xlsx formats
-                const data = await file.arrayBuffer();
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                console.log('Reading retailer file:', file.name);
+                let retailerRows = [];
+
+                if (fileExtension === 'csv') {
+                    if (typeof XLSX !== 'undefined') {
+                        try {
+                            const data = await file.arrayBuffer();
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                        } catch (err) {
+                            console.warn('XLSX CSV parse fallback to text:', err);
+                        }
+                    }
+                    if (!retailerRows || retailerRows.length < 2) {
+                        const text = await file.text();
+                        retailerRows = parseCSVText(text);
+                    }
+                } else {
+                    if (typeof XLSX === 'undefined') {
+                        showToast('Excel reader library not loaded. Please refresh the page.', 'error');
+                        return;
+                    }
+                    const data = await file.arrayBuffer();
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    retailerRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                }
 
                 console.log('Retailer data read successfully. Rows:', retailerRows.length);
 
                 if (!retailerRows || retailerRows.length < 2) {
-                    showToast('Excel file is empty or contains only headers.');
+                    showToast('File is empty or contains only headers.', 'warning');
                     return;
                 }
 
@@ -857,7 +929,7 @@ function initEventListeners() {
                 if (columnIndices.sector === -1) missingColumns.push('Sector');
 
                 if (missingColumns.length > 0) {
-                    showToast(`Missing columns: ${missingColumns.join(', ')}. Found: ${headers.join(', ')}`);
+                    showToast(`Missing columns: ${missingColumns.join(', ')}. Found: ${headers.join(', ')}`, 'error');
                     return;
                 }
 
@@ -873,7 +945,7 @@ function initEventListeners() {
                 }
 
                 if (newRetailers.length === 0) {
-                    showToast('No valid retailer data found.');
+                    showToast('No valid retailer data found in file.', 'warning');
                     return;
                 }
 
@@ -931,8 +1003,12 @@ function initEventListeners() {
                     console.log('✅ New retailers to add:', retailersToAdd.map(r => r.name));
 
                     if (retailersToAdd.length === 0) {
-                        showToast(`ℹ️ All ${finalRetailers.length} retailers in the file already exist in the database. No new retailers to add.`, 'info', 5000);
+                        showToast(`ℹ️ All ${finalRetailers.length} retailers in the file already exist in the database.`, 'info', 5000);
                         e.target.value = ''; // Clear the file input
+                        // Make sure table is visible to see existing retailers
+                        const tableContainer = document.getElementById('retailer-data-table-container');
+                        if (tableContainer) tableContainer.classList.remove('hidden');
+                        renderDashboard();
                         return;
                     }
 
@@ -966,9 +1042,17 @@ function initEventListeners() {
                 e.target.value = '';
                 console.log('🧹 File input cleared');
 
+                // Auto-show table and reset page to 1
+                const tableContainer = document.getElementById('retailer-data-table-container');
+                if (tableContainer) {
+                    tableContainer.classList.remove('hidden');
+                }
+                window.retailerCurrentPage = 1;
+                renderDashboard();
+
             } catch (error) {
                 console.error('Retailer file error:', error);
-                showToast(`Error: ${error.message || 'Failed to read the retailer Excel file'}`);
+                showToast(`Error: ${error.message || 'Failed to read the retailer file'}`, 'error');
             }
         });
     }
@@ -1005,8 +1089,155 @@ function initEventListeners() {
         });
     }
 
-    if (retailerNameFilter) retailerNameFilter.addEventListener('input', renderDashboard);
-    if (sectorFilter) sectorFilter.addEventListener('input', renderDashboard);
+    if (retailerNameFilter) {
+        retailerNameFilter.addEventListener('input', () => {
+            window.retailerCurrentPage = 1;
+            renderDashboard();
+        });
+    }
+    if (sectorFilter) {
+        sectorFilter.addEventListener('input', () => {
+            window.retailerCurrentPage = 1;
+            renderDashboard();
+        });
+    }
+
+    const clearRetailerFiltersBtn = document.getElementById('clear-retailer-filters-btn');
+    if (clearRetailerFiltersBtn) {
+        clearRetailerFiltersBtn.addEventListener('click', () => {
+            if (retailerNameFilter) retailerNameFilter.value = '';
+            if (sectorFilter) sectorFilter.value = '';
+            window.retailerCurrentPage = 1;
+            renderDashboard();
+        });
+    }
+
+    const retailerPrevBtn = document.getElementById('retailer-prev-page-btn');
+    if (retailerPrevBtn) {
+        retailerPrevBtn.addEventListener('click', () => {
+            if ((window.retailerCurrentPage || 1) > 1) {
+                window.retailerCurrentPage--;
+                renderDashboard();
+            }
+        });
+    }
+
+    const retailerNextBtn = document.getElementById('retailer-next-page-btn');
+    if (retailerNextBtn) {
+        retailerNextBtn.addEventListener('click', () => {
+            window.retailerCurrentPage = (window.retailerCurrentPage || 1) + 1;
+            renderDashboard();
+        });
+    }
+
+    const retailerPageSizeSelect = document.getElementById('retailer-page-size');
+    if (retailerPageSizeSelect) {
+        retailerPageSizeSelect.addEventListener('change', (e) => {
+            window.retailerPageSize = e.target.value;
+            window.retailerCurrentPage = 1;
+            renderDashboard();
+        });
+    }
+
+    // Row Edit / Save / Cancel event delegation
+    document.addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('.edit-retailer-row-btn');
+        if (editBtn) {
+            const id = editBtn.dataset.id;
+            const name = editBtn.dataset.name;
+            window.editingRetailerId = id || name;
+            window.isEditingRetailerSector = true;
+            renderDashboard();
+            const input = document.querySelector(`.edit-retailer-name-input[data-id="${id}"]`);
+            if (input) input.focus();
+            return;
+        }
+
+        const cancelBtn = e.target.closest('.cancel-retailer-row-btn');
+        if (cancelBtn) {
+            window.editingRetailerId = null;
+            window.isEditingRetailerSector = false;
+            renderDashboard();
+            return;
+        }
+
+        const saveBtn = e.target.closest('.save-retailer-row-btn');
+        if (saveBtn) {
+            const rawId = saveBtn.dataset.id;
+            const id = rawId && !isNaN(rawId) ? parseInt(rawId, 10) : rawId;
+            const originalName = saveBtn.dataset.originalName;
+            const row = saveBtn.closest('tr');
+            const nameInput = row ? row.querySelector('.edit-retailer-name-input') : null;
+            const sectorInput = row ? row.querySelector('.edit-retailer-sector-input') : null;
+            const newName = nameInput ? nameInput.value.trim() : '';
+            const newSector = sectorInput ? sectorInput.value.trim() : '';
+
+            if (!newName || !newSector) {
+                showToast('Retailer Name and Sector cannot be empty', 'error');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            const success = await appState.updateRetailer(id, newName, newSector, originalName);
+            if (success) {
+                window.editingRetailerId = null;
+                window.isEditingRetailerSector = false;
+                renderDashboard();
+            } else {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save';
+            }
+            return;
+        }
+
+        const deleteBtn = e.target.closest('.delete-retailer-row-btn');
+        if (deleteBtn) {
+            const rawId = deleteBtn.dataset.id;
+            const id = rawId && !isNaN(rawId) ? parseInt(rawId, 10) : rawId;
+            const name = deleteBtn.dataset.name;
+            const sector = deleteBtn.dataset.sector;
+
+            let confirmed = false;
+            if (typeof Swal !== 'undefined') {
+                const result = await Swal.fire({
+                    title: 'Delete Retailer?',
+                    html: `Are you sure you want to delete <strong>${escapeHtml(name)}</strong> (${escapeHtml(sector)})?<br><span class="text-xs text-red-500 font-medium">This will permanently delete this retailer from the database.</span>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete',
+                    cancelButtonText: 'Cancel'
+                });
+                confirmed = result.isConfirmed;
+            } else {
+                confirmed = window.confirm(`Are you sure you want to delete retailer "${name}"?`);
+            }
+
+            if (!confirmed) return;
+
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = `<span class="text-xs">Deleting...</span>`;
+
+            const success = await appState.deleteRetailer(id, name);
+            if (success) {
+                if (window.editingRetailerId && (String(window.editingRetailerId) === String(id) || window.editingRetailerId === name)) {
+                    window.editingRetailerId = null;
+                    window.isEditingRetailerSector = false;
+                }
+                renderDashboard();
+            } else {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = `
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>Delete</span>
+                `;
+            }
+            return;
+        }
+    });
 
     // Add sorting functionality for Bills to Dispatch table
     let dispatchSortColumn = null;
@@ -1201,9 +1432,23 @@ function initEventListeners() {
 
     if (document.getElementById('download-retailers-btn')) {
         document.getElementById('download-retailers-btn').addEventListener('click', () => {
-            const csvData = appState.data.retailers.map(r => `${r.name},${r.sector}`).join('\n');
-            const header = "Retailer Name,Sector\n";
-            downloadCSV('retailers-data.csv', header + csvData);
+            const retailers = appState.data.retailers || [];
+            if (retailers.length === 0) {
+                showToast('No retailer data to download', 'warning');
+                return;
+            }
+            const csvRows = ['Retailer Name,Sector'];
+            retailers.forEach(r => {
+                const name = String(r.name || '').includes(',') || String(r.name || '').includes('"')
+                    ? `"${String(r.name || '').replace(/"/g, '""')}"`
+                    : String(r.name || '');
+                const sector = String(r.sector || '').includes(',') || String(r.sector || '').includes('"')
+                    ? `"${String(r.sector || '').replace(/"/g, '""')}"`
+                    : String(r.sector || '');
+                csvRows.push(`${name},${sector}`);
+            });
+            downloadCSV('retailers-data.csv', csvRows.join('\r\n'));
+            showToast(`Downloaded ${retailers.length} retailers as CSV`, 'success');
         });
     }
 
@@ -1372,8 +1617,21 @@ function initEventListeners() {
                 // Trigger the filter
                 paymentFilter.dispatchEvent(new Event('change'));
             }
-        } else if (e.target.id === 'base-file-view-btn') {
-            document.getElementById('retailer-data-table-container').classList.toggle('hidden');
+        } else if (e.target.id === 'base-file-view-btn' || e.target.closest('#base-file-view-btn')) {
+            const tableContainer = document.getElementById('retailer-data-table-container');
+            if (tableContainer) {
+                const isHidden = tableContainer.classList.contains('hidden');
+                if (isHidden) {
+                    tableContainer.classList.remove('hidden');
+                    if (!appState.data.retailers || appState.data.retailers.length === 0) {
+                        appState.loadRetailers();
+                    } else {
+                        renderDashboard();
+                    }
+                } else {
+                    tableContainer.classList.add('hidden');
+                }
+            }
         } else if (e.target.closest('.add-edited-to-staging-btn')) {
             const billId = e.target.closest('.add-edited-to-staging-btn').dataset.billId;
             const editedAmountInput = document.querySelector(`.edited-net-amount[data-bill-id="${billId}"]`);
@@ -4304,6 +4562,7 @@ function renderSubProcesses(processName) {
             // Permission mapping for sub-processes
             const permissionMap = {
                 'supply': {
+                    'Base File Management': 'supply.base_file.view',
                     'Base file management': 'supply.base_file.view',
                     'Upload Supply Data': 'supply.upload.view',
                     'Bills to Dispatch': 'supply.dispatch.view',
@@ -4341,6 +4600,9 @@ function renderSubProcesses(processName) {
             console.log(`Permission map for ${processName}:`, permissionMap[processName]);
 
             const allowedSubProcesses = PROCESS_MAP[processName].filter(name => {
+                if (name && name.toLowerCase().includes('base file')) {
+                    return true; // Always show Base File Management
+                }
                 const requiredPermission = permissionMap[processName]?.[name];
                 console.log(`Checking sub-process: ${name}, required permission: ${requiredPermission}`);
 
@@ -4411,7 +4673,9 @@ function renderSubProcesses(processName) {
                     };
 
                     const requiredPermission = sectionPermissions[tabId];
-                    if (requiredPermission && window.rbacService && !window.rbacService.hasPermission(requiredPermission)) {
+                    if (tabId === 'base-file-management') {
+                        // Base File Management is always accessible
+                    } else if (requiredPermission && window.rbacService && !window.rbacService.hasPermission(requiredPermission)) {
                         console.log(`❌ Access denied to ${tabId} - missing ${requiredPermission} permission`);
                         alert(`Access Denied: You don't have permission to view this section.`);
                         return; // Don't proceed with tab switching
@@ -8576,6 +8840,82 @@ class SupabaseAppState extends AppState {
         }
     }
 
+    async updateRetailer(id, newName, newSector, originalName) {
+        if (mockMode) {
+            const idx = (this.data.retailers || []).findIndex(r => 
+                (id && r.id === id) || r.name.toLowerCase().trim() === originalName.toLowerCase().trim()
+            );
+            if (idx !== -1) {
+                this.data.retailers[idx].name = newName;
+                this.data.retailers[idx].sector = newSector;
+            }
+            showToast(`✅ Retailer "${newName}" updated successfully!`, 'success');
+            return true;
+        }
+
+        try {
+            console.log(`📝 Updating retailer id=${id}, name="${newName}", sector="${newSector}"`);
+            
+            // Check duplicate name if name changed
+            if (newName.toLowerCase().trim() !== originalName.toLowerCase().trim()) {
+                const conflict = (this.data.retailers || []).find(r => 
+                    r.id !== id && r.name.toLowerCase().trim() === newName.toLowerCase().trim()
+                );
+                if (conflict) {
+                    showToast(`Retailer "${newName}" already exists!`, 'warning');
+                    return false;
+                }
+            }
+
+            await this.supabaseService.updateRetailer(id, newName, newSector, originalName);
+
+            // Update local state
+            const idx = (this.data.retailers || []).findIndex(r => 
+                (id && r.id === id) || r.name.toLowerCase().trim() === originalName.toLowerCase().trim()
+            );
+            if (idx !== -1) {
+                this.data.retailers[idx].name = newName;
+                this.data.retailers[idx].sector = newSector;
+            }
+
+            // Sync sectors across all bills
+            await this.syncRetailerSectors(newName, newSector);
+            showToast(`✅ Retailer "${newName}" updated successfully!`, 'success');
+            return true;
+        } catch (error) {
+            console.error('Error in appState.updateRetailer:', error);
+            showToast('Error updating retailer: ' + (error.message || 'Unknown error'), 'error');
+            return false;
+        }
+    }
+
+    async deleteRetailer(id, retailerName) {
+        if (mockMode) {
+            this.data.retailers = (this.data.retailers || []).filter(r => 
+                !((id && r.id === id) || (r.name && r.name.toLowerCase().trim() === (retailerName || '').toLowerCase().trim()))
+            );
+            showToast(`✅ Retailer "${retailerName}" deleted successfully!`, 'success');
+            return true;
+        }
+
+        try {
+            console.log(`🗑️ Deleting retailer id=${id}, name="${retailerName}"`);
+            await this.supabaseService.deleteRetailer(id, retailerName);
+
+            // Remove from local data array
+            this.data.retailers = (this.data.retailers || []).filter(r => 
+                !((id && r.id === id) || (r.name && r.name.toLowerCase().trim() === (retailerName || '').toLowerCase().trim()))
+            );
+
+            showToast(`✅ Retailer "${retailerName}" deleted successfully!`, 'success');
+            return true;
+        } catch (error) {
+            console.error('Error in appState.deleteRetailer:', error);
+            showToast('Error deleting retailer: ' + (error.message || 'Unknown error'), 'error');
+            return false;
+        }
+    }
+
     // Sync sectors across all bills when retailer sectors are updated
     async syncRetailerSectors(retailerName, newSector) {
         if (mockMode) {
@@ -12613,12 +12953,12 @@ function renderDashboard() {
         }
     }
 
-    let filteredRetailers = appState.data.retailers;
+    let filteredRetailers = appState.data.retailers || [];
     if (retailerNameFilter) {
         const retailerNameSearchTerm = retailerNameFilter.value.toLowerCase().trim();
         if (retailerNameSearchTerm) {
             filteredRetailers = filteredRetailers.filter(r =>
-                r.name.toLowerCase().includes(retailerNameSearchTerm)
+                String(r.name || '').toLowerCase().includes(retailerNameSearchTerm)
             );
         }
     }
@@ -12626,94 +12966,119 @@ function renderDashboard() {
         const sectorSearchTerm = sectorFilter.value.toLowerCase().trim();
         if (sectorSearchTerm) {
             filteredRetailers = filteredRetailers.filter(r =>
-                String(r.sector).toLowerCase().includes(sectorSearchTerm)
+                String(r.sector || '').toLowerCase().includes(sectorSearchTerm)
             );
         }
     }
 
-    filteredRetailers.sort((a, b) => String(a.sector).localeCompare(String(b.sector)));
+    filteredRetailers.sort((a, b) => String(a.sector || '').localeCompare(String(b.sector || '')) || String(a.name || '').localeCompare(String(b.name || '')));
+
+    // Update count badge
+    const countBadge = document.getElementById('retailer-count-badge');
+    if (countBadge) {
+        countBadge.textContent = `${(appState.data.retailers || []).length} Retailers`;
+    }
+
+    // Pagination logic
+    const totalRetailers = filteredRetailers.length;
+    window.retailerPageSize = window.retailerPageSize || '50';
+    window.retailerCurrentPage = window.retailerCurrentPage || 1;
+    const isAll = window.retailerPageSize === 'all';
+    const pageSize = isAll ? Math.max(1, totalRetailers) : parseInt(window.retailerPageSize, 10);
+    const totalPages = Math.max(1, Math.ceil(totalRetailers / pageSize));
+    if (window.retailerCurrentPage > totalPages) window.retailerCurrentPage = totalPages;
+    if (window.retailerCurrentPage < 1) window.retailerCurrentPage = 1;
+    const startIndex = isAll ? 0 : (window.retailerCurrentPage - 1) * pageSize;
+    const pageItems = isAll ? filteredRetailers : filteredRetailers.slice(startIndex, startIndex + pageSize);
+
+    // Update pagination controls UI
+    const pageInfo = document.getElementById('retailer-page-info');
+    if (pageInfo) {
+        const totalAll = (appState.data.retailers || []).length;
+        if (totalRetailers === 0) {
+            pageInfo.innerHTML = 'Showing <span class="font-semibold text-gray-800">0</span> of <span class="font-semibold text-gray-800">0</span> retailers';
+        } else {
+            const startDisplay = startIndex + 1;
+            const endDisplay = Math.min(startIndex + pageItems.length, totalRetailers);
+            pageInfo.innerHTML = `Showing <span class="font-semibold text-gray-800">${startDisplay}</span> to <span class="font-semibold text-gray-800">${endDisplay}</span> of <span class="font-semibold text-gray-800">${totalRetailers}</span> retailers${totalRetailers !== totalAll ? ` <span class="text-xs text-gray-400 font-normal">(filtered from ${totalAll})</span>` : ''}`;
+        }
+    }
+    const pageNumber = document.getElementById('retailer-page-number');
+    if (pageNumber) {
+        pageNumber.textContent = `Page ${window.retailerCurrentPage} of ${totalPages}`;
+    }
+    const prevBtn = document.getElementById('retailer-prev-page-btn');
+    if (prevBtn) {
+        prevBtn.disabled = window.retailerCurrentPage <= 1;
+    }
+    const nextBtn = document.getElementById('retailer-next-page-btn');
+    if (nextBtn) {
+        nextBtn.disabled = window.retailerCurrentPage >= totalPages;
+    }
 
     if (retailerTableBody) {
-        retailerTableBody.innerHTML = filteredRetailers.map(r => `
-            <tr class="table-row">
-                <td data-label="Retailer Name">${r.name}</td>
-                <td data-label="Sector">
-                    <input type="text" 
-                        value="${r.sector}" 
-                        class="retailer-sector-input bg-transparent border-b border-gray-300 focus:border-red-600 focus:outline-none px-2 py-1 w-full" 
-                        data-retailer-name="${r.name}"
-                        data-original-sector="${r.sector}">
-                </td>
-            </tr>
-        `).join('');
-
-        // Add event listeners for sector updates
-        document.querySelectorAll('.retailer-sector-input').forEach(input => {
-            // Set flag when user starts editing
-            input.addEventListener('focus', function () {
-                window.isEditingRetailerSector = true;
-            });
-
-            input.addEventListener('blur', async function () {
-                const retailerName = this.dataset.retailerName;
-                const originalSector = this.dataset.originalSector;
-                const newSector = this.value.trim();
-
-                // Clear editing flag
-                window.isEditingRetailerSector = false;
-
-                if (newSector && newSector !== originalSector) {
-                    try {
-                        // Optimistic UI update - update local state immediately
-                        const retailerIndex = appState.data.retailers.findIndex(r =>
-                            r.name.toLowerCase().trim() === retailerName.toLowerCase().trim()
-                        );
-
-                        if (retailerIndex !== -1) {
-                            appState.data.retailers[retailerIndex].sector = newSector;
-                        }
-
-                        // Update database
-                        await appState.supabaseService.updateRetailerSector(retailerName, newSector);
-
-                        // Sync sectors across all bills
-                        const updatedCount = await appState.syncRetailerSectors(retailerName, newSector);
-
-                        showToast(`✅ Updated ${retailerName} sector to "${newSector}" and synced ${updatedCount} bill(s)`, 'success');
-
-                        // Update the data attribute for future comparisons
-                        this.dataset.originalSector = newSector;
-
-                    } catch (error) {
-                        console.error('Error updating retailer sector:', error);
-                        showToast('Error updating retailer sector', 'error');
-                        // Revert to original value on error
-                        this.value = originalSector;
-                        // Revert optimistic update
-                        const retailerIndex = appState.data.retailers.findIndex(r =>
-                            r.name.toLowerCase().trim() === retailerName.toLowerCase().trim()
-                        );
-                        if (retailerIndex !== -1) {
-                            appState.data.retailers[retailerIndex].sector = originalSector;
-                        }
-                    }
-                } else if (!newSector) {
-                    // Don't allow empty sectors
-                    this.value = originalSector;
-                    showToast('Sector cannot be empty', 'warning');
+        if (pageItems.length === 0) {
+            retailerTableBody.innerHTML = `
+                <tr class="table-row">
+                    <td colspan="4" class="text-center py-8 text-gray-500">
+                        ${totalRetailers === 0 && (appState.data.retailers || []).length > 0 ? 'No retailers match your search filters.' : 'No retailers found. Upload an Excel or CSV file to add retailers.'}
+                    </td>
+                </tr>
+            `;
+        } else {
+            retailerTableBody.innerHTML = pageItems.map((r, idx) => {
+                const globalIndex = startIndex + idx + 1;
+                const isEditing = window.editingRetailerId && (String(window.editingRetailerId) === String(r.id) || window.editingRetailerId === r.name);
+                
+                if (isEditing) {
+                    return `
+                        <tr class="table-row bg-blue-50/70 border-l-4 border-blue-600 transition-colors" data-id="${r.id || ''}">
+                            <td class="py-2.5 px-4 font-mono text-xs text-gray-500">${globalIndex}</td>
+                            <td class="py-2.5 px-4">
+                                <input type="text" class="edit-retailer-name-input compact-input w-full bg-white border border-blue-400 rounded-md px-2 py-1 text-sm font-semibold focus:ring-1 focus:ring-blue-500" value="${escapeHtml(r.name)}" data-original-name="${escapeHtml(r.name)}" data-id="${r.id || ''}">
+                            </td>
+                            <td class="py-2.5 px-4">
+                                <input type="text" list="sector-list" class="edit-retailer-sector-input compact-input w-full bg-white border border-blue-400 rounded-md px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500" value="${escapeHtml(r.sector)}" data-original-sector="${escapeHtml(r.sector)}" data-id="${r.id || ''}">
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button type="button" class="save-retailer-row-btn inline-flex items-center gap-1 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-2.5 py-1 rounded-md shadow-xs transition" data-id="${r.id || ''}" data-original-name="${escapeHtml(r.name)}" data-original-sector="${escapeHtml(r.sector)}">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        <span>Save</span>
+                                    </button>
+                                    <button type="button" class="cancel-retailer-row-btn inline-flex items-center gap-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-2.5 py-1 rounded-md transition" data-id="${r.id || ''}">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        <span>Cancel</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                 }
-            });
 
-            input.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') {
-                    this.blur(); // Trigger the blur event
-                } else if (e.key === 'Escape') {
-                    // Cancel edit on Escape
-                    this.value = this.dataset.originalSector;
-                    this.blur();
-                }
-            });
-        });
+                return `
+                    <tr class="table-row hover:bg-gray-50/80 transition-colors" data-id="${r.id || ''}">
+                        <td class="py-2.5 px-4 font-mono text-xs text-gray-400" data-label="#">${globalIndex}</td>
+                        <td class="py-2.5 px-4 font-medium text-gray-900" data-label="Retailer Name">${escapeHtml(r.name)}</td>
+                        <td class="py-2.5 px-4 text-gray-700" data-label="Sector">
+                            <span class="inline-block bg-gray-100 text-gray-800 text-xs px-2.5 py-0.5 rounded-full border border-gray-200 font-medium">${escapeHtml(r.sector)}</span>
+                        </td>
+                        <td class="py-2.5 px-4 text-center" data-label="Action">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" class="edit-retailer-row-btn inline-flex items-center gap-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium px-2.5 py-1 rounded-md border border-blue-200 transition shadow-xs" data-id="${r.id || ''}" data-name="${escapeHtml(r.name)}" data-sector="${escapeHtml(r.sector)}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    <span>Edit</span>
+                                </button>
+                                <button type="button" class="delete-retailer-row-btn inline-flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-700 font-medium px-2.5 py-1 rounded-md border border-red-200 transition shadow-xs" data-id="${r.id || ''}" data-name="${escapeHtml(r.name)}" data-sector="${escapeHtml(r.sector)}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <span>Delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
     }
 
     if (temporaryBillsTableBody) {

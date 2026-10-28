@@ -230,7 +230,8 @@ export class QueryService {
           const whereClauses: string[] = [];
           filters.forEach(f => {
             params.push(f.val);
-            whereClauses.push(`"${f.col}" = $${params.length}`);
+            const opSymbol = f.op === 'ilike' || f.op === 'like' ? 'ILIKE' : '=';
+            whereClauses.push(`"${f.col}" ${opSymbol} $${params.length}`);
           });
 
           let sql = `UPDATE "${tableName}" SET ${setClauses.join(', ')}`;
@@ -265,7 +266,8 @@ export class QueryService {
         const whereClauses: string[] = [];
         filters.forEach(f => {
           params.push(f.val);
-          whereClauses.push(`"${f.col}" = $${params.length}`);
+          const opSymbol = f.op === 'ilike' || f.op === 'like' ? 'ILIKE' : '=';
+          whereClauses.push(`"${f.col}" ${opSymbol} $${params.length}`);
         });
 
         let sql = `DELETE FROM "${tableName}"`;
@@ -297,6 +299,38 @@ export class QueryService {
     const result: any[] = [];
     const table = this.getTableRows(tableName);
     const now = new Date().toISOString();
+
+    if (ENV.USE_DATABASE) {
+      try {
+        const db = getDatabaseConnector();
+        for (const r of rows) {
+          const cols = Object.keys(r);
+          if (cols.length > 0) {
+            const colNames = cols.map(c => `"${c}"`).join(', ');
+            const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+            const updateCols = cols.filter(c => c !== conflictCol && c !== 'id' && c !== 'created_at');
+            const updateSet = updateCols.map(c => `"${c}" = EXCLUDED."${c}"`).join(', ');
+            const values = cols.map(c => r[c]);
+            let sql = `INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders})`;
+            if (updateSet.length > 0) {
+              sql += ` ON CONFLICT ("${conflictCol}") DO UPDATE SET ${updateSet}, "updated_at" = NOW()`;
+            } else {
+              sql += ` ON CONFLICT ("${conflictCol}") DO NOTHING`;
+            }
+            sql += ` RETURNING *`;
+            const res = await db.query(sql, values);
+            if (res.rows && res.rows[0]) {
+              result.push(res.rows[0]);
+            }
+          }
+        }
+        if (result.length > 0) {
+          return { data: result, count: result.length };
+        }
+      } catch (err) {
+        console.error(`PostgreSQL upsert error on "${tableName}":`, err);
+      }
+    }
 
     for (const r of rows) {
       const matchVal = r[conflictCol];

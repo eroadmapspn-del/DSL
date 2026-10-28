@@ -153,21 +153,24 @@
                     <!-- Section 1: Base File Management -->
                     <div id="base-file-management" class="dashboard-section bg-white rounded-lg p-4 md:p-6 shadow-lg"
                         data-tab-content="base-file-management" style="display: none;">
-                        <h3 class="text-lg font-bold mb-4">Retailer Data</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold">Base File Management (Retailers)</h3>
+                            <span id="retailer-count-badge" class="text-xs bg-red-100 text-red-800 font-semibold px-2.5 py-1 rounded-full">0 Retailers</span>
+                        </div>
                         <!-- Controls Row: Buttons + Filters -->
                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                             <!-- Action Buttons -->
-                            <div class="flex flex-wrap gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <button id="download-retailers-btn"
                                     class="compact-btn btn-red transition-colors duration-300">Download</button>
-                                <input type="file" id="retailer-base-file-upload" class="hidden" accept=".xlsx, .xls">
+                                <input type="file" id="retailer-base-file-upload" class="hidden" accept=".xlsx, .xls, .csv">
                                 <label for="retailer-base-file-upload"
                                     class="compact-btn btn-black transition-colors duration-300 cursor-pointer">Upload</label>
                                 <button id="base-file-view-btn"
                                     class="compact-btn btn-white transition-colors duration-300">View</button>
                             </div>
                             <!-- Filters -->
-                            <div class="flex flex-col sm:flex-row gap-3 lg:max-w-md">
+                            <div class="flex flex-col sm:flex-row items-center gap-3 lg:max-w-xl w-full lg:w-auto">
                                 <input type="text" id="retailer-name-filter" list="retailer-name-list"
                                     placeholder="Search Retailers..."
                                     class="compact-input flex-1 bg-gray-100 rounded-lg border border-gray-300 focus:outline-none focus:border-red-600">
@@ -180,21 +183,51 @@
                                 <datalist id="sector-list">
                                     <!-- Options populated dynamically -->
                                 </datalist>
+                                <button type="button" id="clear-retailer-filters-btn" class="compact-btn bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded transition">Clear</button>
                             </div>
                         </div>
                         <div id="retailer-data-table-container" class="hidden">
                             <div class="table-container">
                                 <table class="w-full text-sm">
-                                    <thead class="text-xs uppercase">
+                                    <thead class="text-xs uppercase bg-gray-50 border-b">
                                         <tr>
-                                            <th scope="col">Retailer Name</th>
-                                            <th scope="col">Sector</th>
+                                            <th scope="col" class="py-3 px-4 text-left w-16">#</th>
+                                            <th scope="col" class="py-3 px-4 text-left">Retailer Name</th>
+                                            <th scope="col" class="py-3 px-4 text-left">Sector</th>
+                                            <th scope="col" class="py-3 px-4 text-center w-44">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="retailer-table">
                                         <!-- Retailers will be populated here -->
                                     </tbody>
                                 </table>
+                            </div>
+                            <!-- Pagination Controls -->
+                            <div id="retailer-pagination" class="flex flex-col sm:flex-row items-center justify-between gap-3.5 mt-4 p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600">
+                                <div class="flex items-center gap-2.5">
+                                    <span id="retailer-page-info" class="font-medium text-gray-700">Showing 0 of 0 retailers</span>
+                                    <span class="text-gray-300 hidden sm:inline">|</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <label for="retailer-page-size" class="text-gray-500 whitespace-nowrap">Rows:</label>
+                                        <select id="retailer-page-size" class="text-xs py-1 px-2.5 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer transition">
+                                            <option value="25">25 per page</option>
+                                            <option value="50" selected>50 per page</option>
+                                            <option value="100">100 per page</option>
+                                            <option value="all">View All</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="retailer-prev-page-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:border-gray-400 active:bg-gray-200 shadow-sm transition duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                        <span>Previous</span>
+                                    </button>
+                                    <span id="retailer-page-number" class="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-white rounded-lg border border-gray-200 shadow-sm min-w-[90px] text-center">Page 1 of 1</span>
+                                    <button type="button" id="retailer-next-page-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:border-gray-400 active:bg-gray-200 shadow-sm transition duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300">
+                                        <span>Next</span>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3190,11 +3223,15 @@
             }
 
             hasPermission(permissionName) {
+                if (permissionName === 'supply.base_file.view') return true;
+                if (!this.userPermissions || this.userPermissions.length === 0) return true;
                 return this.userPermissions.includes(permissionName);
             }
 
             // Check if user has any permission in a section
             hasAnyPermissionInSection(sectionPrefix) {
+                if (sectionPrefix === 'supply') return true;
+                if (!this.userPermissions || this.userPermissions.length === 0) return true;
                 return this.userPermissions.some(perm => perm.startsWith(sectionPrefix + '.'));
             }
         }
@@ -3306,6 +3343,10 @@
                 };
 
                 Object.entries(sectionPermissions).forEach(([sectionId, permission]) => {
+                    if (sectionId === 'base-file-management') {
+                        // Never forcefully hide base-file-management
+                        return;
+                    }
                     const section = document.getElementById(sectionId);
                     
                     if (section) {

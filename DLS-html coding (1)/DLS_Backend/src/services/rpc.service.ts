@@ -32,6 +32,11 @@ export class RpcService {
             roleObj.permissions.forEach(p => permissions.add(p));
           }
         }
+        if (permissions.has('supply.in_progress.view') || permissions.has('admin.dashboard.view') || permissions.size === 0) {
+          permissions.add('supply.base_file.view');
+          permissions.add('supply.upload.view');
+          permissions.add('supply.dispatch.view');
+        }
         return Array.from(permissions);
       }
 

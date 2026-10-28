@@ -546,6 +546,55 @@ class SupabaseDataService {
         }
     }
     
+    // Update a retailer's full row (name and/or sector)
+    async updateRetailer(id, newName, newSector, originalName) {
+        try {
+            console.log(`📝 Updating retailer id=${id}: "${originalName}" -> "${newName}", sector="${newSector}"`);
+            
+            const patch = {
+                retailer_name: newName,
+                sector: newSector,
+                updated_at: new Date().toISOString()
+            };
+
+            let query = supabase.from('retailers').update(patch);
+            if (id) {
+                query = query.eq('id', id);
+            } else {
+                query = query.ilike('retailer_name', originalName || newName);
+            }
+
+            const { data, error } = await query.select();
+            if (error) throw error;
+            
+            console.log('✅ Retailer updated in database:', data);
+            return data;
+        } catch (error) {
+            console.error('Error updating retailer in database:', error);
+            throw error;
+        }
+    }
+
+    // Delete a retailer from database
+    async deleteRetailer(id, retailerName) {
+        try {
+            console.log(`🗑️ Deleting retailer id=${id}, name="${retailerName}" from database`);
+            let query = supabase.from('retailers').delete();
+            if (id) {
+                query = query.eq('id', id);
+            } else {
+                query = query.ilike('retailer_name', retailerName);
+            }
+            const { data, error } = await query;
+            if (error) throw error;
+            console.log('✅ Retailer deleted from database:', data);
+            return data;
+        } catch (error) {
+            console.error('Error deleting retailer from database:', error);
+            throw error;
+        }
+    }
+
     // Update a retailer's sector
     async updateRetailerSector(retailerName, newSector) {
         try {
@@ -553,8 +602,7 @@ class SupabaseDataService {
             
             const { data, error } = await supabase
                 .from('retailers')
-                .update({ sector: newSector })
-                .eq('user_id', this.userId)
+                .update({ sector: newSector, updated_at: new Date().toISOString() })
                 .ilike('retailer_name', retailerName)
                 .select();
             
