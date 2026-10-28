@@ -159,13 +159,21 @@
                         </div>
                         <!-- Controls Row: Buttons + Filters -->
                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-                            <!-- Action Buttons -->
+                            <!-- Action Buttons & Quick Add Input -->
                             <div class="flex flex-wrap items-center gap-2">
-                                <button type="button" id="add-retailer-btn"
-                                    class="compact-btn bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors duration-300 flex items-center gap-1.5 shadow-sm">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                    <span>Add Retailer</span>
-                                </button>
+                                <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg p-1 shadow-xs">
+                                    <input type="text" id="inline-new-retailer-name"
+                                        placeholder="Retailer Name..."
+                                        class="compact-input text-xs bg-white rounded border border-gray-300 px-2.5 py-1.5 focus:outline-none focus:border-emerald-600 w-40 sm:w-48">
+                                    <input type="text" id="inline-new-retailer-sector" list="sector-list"
+                                        placeholder="Sector..."
+                                        class="compact-input text-xs bg-white rounded border border-gray-300 px-2.5 py-1.5 focus:outline-none focus:border-emerald-600 w-28 sm:w-36">
+                                    <button type="button" id="inline-add-retailer-btn"
+                                        class="compact-btn bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold px-3 py-1.5 rounded shadow-xs transition flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        <span>Add</span>
+                                    </button>
+                                </div>
                                 <button id="download-retailers-btn"
                                     class="compact-btn btn-red transition-colors duration-300">Download</button>
                                 <input type="file" id="retailer-base-file-upload" class="hidden" accept=".xlsx, .xls, .csv">

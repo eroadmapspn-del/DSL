@@ -602,6 +602,81 @@ function initEventListeners() {
         });
     }
 
+    // Inline Quick-Add Retailer (Base File Management)
+    const inlineAddBtn = document.getElementById('inline-add-retailer-btn');
+    const inlineNameInput = document.getElementById('inline-new-retailer-name');
+    const inlineSectorInput = document.getElementById('inline-new-retailer-sector');
+
+    async function handleInlineAddRetailer() {
+        const nameInput = document.getElementById('inline-new-retailer-name');
+        const sectorInput = document.getElementById('inline-new-retailer-sector');
+        const addBtn = document.getElementById('inline-add-retailer-btn');
+
+        if (!nameInput || !sectorInput) return;
+        const name = nameInput.value.trim();
+        const sector = sectorInput.value.trim();
+
+        if (!name) {
+            showToast('Please enter a retailer name', 'error');
+            nameInput.focus();
+            return;
+        }
+        if (!sector) {
+            showToast('Please enter or select a sector', 'error');
+            sectorInput.focus();
+            return;
+        }
+
+        if (addBtn) {
+            addBtn.disabled = true;
+            addBtn.innerHTML = `<span>Adding...</span>`;
+        }
+
+        try {
+            const success = await appState.addRetailer(String(name), String(sector));
+            if (success !== false) {
+                nameInput.value = '';
+                sectorInput.value = '';
+                nameInput.focus();
+            }
+        } finally {
+            if (addBtn) {
+                addBtn.disabled = false;
+                addBtn.innerHTML = `
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Add</span>
+                `;
+            }
+        }
+    }
+
+    if (inlineAddBtn) {
+        inlineAddBtn.addEventListener('click', handleInlineAddRetailer);
+    }
+
+    if (inlineNameInput) {
+        inlineNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const sectorInput = document.getElementById('inline-new-retailer-sector');
+                if (!sectorInput || !sectorInput.value.trim()) {
+                    if (sectorInput) sectorInput.focus();
+                } else {
+                    handleInlineAddRetailer();
+                }
+            }
+        });
+    }
+
+    if (inlineSectorInput) {
+        inlineSectorInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleInlineAddRetailer();
+            }
+        });
+    }
+
     if (billNumberInput) {
         billNumberInput.addEventListener("blur", function () {
             let billNumber = this.value.trim();
