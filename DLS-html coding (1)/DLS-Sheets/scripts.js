@@ -216,7 +216,6 @@ function initDOMReferences() {
     cancelledAmountCard = document.getElementById('cancelled-amount-card');
     editedAmountCard = document.getElementById('edited-amount-card');
     fileUploadInput = document.getElementById('file-upload-input');
-    baseFileViewBtn = document.getElementById('base-file-view-btn');
 }
 
 // Helper function to find duplicates in an array
@@ -644,7 +643,7 @@ function initEventListeners() {
                 addBtn.disabled = false;
                 addBtn.innerHTML = `
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>Add</span>
+                    <span>Add Retailer</span>
                 `;
             }
         }
@@ -1815,17 +1814,6 @@ function initEventListeners() {
                 }
                 // Trigger the filter
                 paymentFilter.dispatchEvent(new Event('change'));
-            }
-        } else if (e.target.id === 'base-file-view-btn' || e.target.closest('#base-file-view-btn')) {
-            const tableContainer = document.getElementById('retailer-data-table-container');
-            if (tableContainer) {
-                tableContainer.classList.remove('hidden');
-                tableContainer.style.display = 'block';
-            }
-            if (appState && typeof appState.loadRetailers === 'function') {
-                appState.loadRetailers();
-            } else {
-                renderDashboard();
             }
         } else if (e.target.closest('.add-edited-to-staging-btn')) {
             const billId = e.target.closest('.add-edited-to-staging-btn').dataset.billId;
@@ -4895,12 +4883,8 @@ function renderSubProcesses(processName) {
                                 tableContainer.style.display = 'block';
                             }
                             if (window.appState) {
-                                if (!window.appState.data?.retailers || window.appState.data.retailers.length === 0) {
-                                    console.log('📥 Auto-loading retailers data directly from DB...');
-                                    window.appState.loadRetailers();
-                                } else {
-                                    renderDashboard();
-                                }
+                                console.log('📥 Auto-loading fresh retailers data from DB...');
+                                window.appState.loadRetailers();
                             }
                         }
 
