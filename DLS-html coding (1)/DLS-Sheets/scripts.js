@@ -13243,10 +13243,10 @@ function renderDashboard() {
                         <td class="py-2.5 px-3 text-center" data-label="Select">
                             <input type="checkbox" class="retailer-row-checkbox rounded accent-red-600 cursor-pointer w-4 h-4" data-id="${r.id || ''}" data-name="${escapeHtml(r.name)}" ${isSelected ? 'checked' : ''}>
                         </td>
-                        <td class="py-2.5 px-4 font-mono text-xs text-gray-400" data-label="#">${globalIndex}</td>
-                        <td class="py-2.5 px-4 font-medium text-gray-900" data-label="Retailer Name">${escapeHtml(r.name)}</td>
-                        <td class="py-2.5 px-4 text-gray-700" data-label="Sector">
-                            <span class="inline-block bg-gray-100 text-gray-800 text-xs px-2.5 py-0.5 rounded-full border border-gray-200 font-medium">${escapeHtml(r.sector)}</span>
+                        <td class="py-2.5 px-4 font-mono text-xs text-gray-400 select-text" data-label="#">${globalIndex}</td>
+                        <td class="py-2.5 px-4 font-semibold text-gray-900 text-sm select-text" data-label="Retailer Name">${escapeHtml(r.name)}</td>
+                        <td class="py-2.5 px-4 text-gray-900 text-sm font-medium select-text" data-label="Sector">
+                            <span class="select-text">${escapeHtml(r.sector || 'N/A')}</span>
                         </td>
                         <td class="py-2.5 px-4 text-center" data-label="Action">
                             <div class="flex items-center justify-center gap-1.5">
