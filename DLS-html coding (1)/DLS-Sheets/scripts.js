@@ -1617,24 +1617,37 @@ function initEventListeners() {
     });
 
     if (document.getElementById('download-retailers-btn')) {
-        document.getElementById('download-retailers-btn').addEventListener('click', () => {
-            const retailers = appState.data.retailers || [];
-            if (retailers.length === 0) {
-                showToast('No retailer data to download', 'warning');
+        document.getElementById('download-retailers-btn').addEventListener('click', async () => {
+            let retailers = appState.data.retailers;
+            if (!retailers || retailers.length === 0) {
+                if (appState && typeof appState.loadRetailers === 'function') {
+                    showToast('Fetching retailer data from database...', 'info');
+                    await appState.loadRetailers();
+                    retailers = appState.data.retailers || [];
+                }
+            }
+            if (!retailers || retailers.length === 0) {
+                showToast('No retailer data found in database to download', 'warning');
                 return;
             }
             const csvRows = ['Retailer Name,Sector'];
             retailers.forEach(r => {
-                const name = String(r.name || '').includes(',') || String(r.name || '').includes('"')
-                    ? `"${String(r.name || '').replace(/"/g, '""')}"`
-                    : String(r.name || '');
-                const sector = String(r.sector || '').includes(',') || String(r.sector || '').includes('"')
-                    ? `"${String(r.sector || '').replace(/"/g, '""')}"`
-                    : String(r.sector || '');
+                const name = `"${String(r.name || '').replace(/"/g, '""')}"`;
+                const sector = `"${String(r.sector || '').replace(/"/g, '""')}"`;
                 csvRows.push(`${name},${sector}`);
             });
-            downloadCSV('retailers-data.csv', csvRows.join('\r\n'));
-            showToast(`Downloaded ${retailers.length} retailers as CSV`, 'success');
+            const csvContent = '\uFEFF' + csvRows.join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `retailers-base-file-${new Date().toISOString().slice(0, 10)}.csv`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast(`✅ Successfully downloaded all ${retailers.length} retailers as CSV!`, 'success');
         });
     }
 
